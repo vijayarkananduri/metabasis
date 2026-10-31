@@ -207,8 +207,9 @@ internal object StepLedger {
         put("sensor_mode", state.sensorMode).put("last_evolution_at", state.lastEvolutionAt).put("last_evolution_from", state.lastEvolutionFrom).put("last_evolution_to", state.lastEvolutionTo)
     }.toString()
 
-    private fun decode(json: String?): AppState? = try {
+    private fun decode(json: String?): AppState? {
         if (json.isNullOrBlank()) return null
+        return try {
         val root = JSONObject(json); val config = root.getJSONObject("user_config"); val progress = root.getJSONObject("progress")
         val history = mutableMapOf<String, Int>(); val rows = root.optJSONArray("history") ?: JSONArray()
         for (i in 0 until rows.length()) { val row=rows.getJSONObject(i); history[row.getString("date")]=row.optInt("steps").coerceAtLeast(0) }
@@ -219,5 +220,6 @@ internal object StepLedger {
             progress.optInt("current_fragments").coerceAtLeast(0), progress.optInt("step_remainder").coerceIn(0,999), progress.optString("last_completion_date",LocalDate.now().toString()),
             progress.optString("last_recorded_steps_date",LocalDate.now().toString()), progress.optInt("last_recorded_steps_today").coerceAtLeast(0), history, events,
             root.optString("sensor_mode","Starting motion sensor…"), root.optLong("last_evolution_at"), root.optString("last_evolution_from"), root.optString("last_evolution_to"))
-    } catch (_: Exception) { null }
+        } catch (_: Exception) { null }
+    }
 }
