@@ -183,10 +183,29 @@ class MainActivity : ComponentActivity() {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("TRACES", color = if (dark) Milk else Titanium, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 22.sp, letterSpacing = 2.sp); Text("A calendar of accumulation, not a streak. Select a day for its details.", color = if (dark) Muted else Color(0xFF454C53), fontFamily = Inter, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp, bottom = 16.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) { TextButton(onClick = { month = month.minusMonths(1) }) { Text("‹", fontSize = 24.sp, color = led) }; Text("${month.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${month.year}", color = if (dark) Milk else Titanium, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold); TextButton(onClick = { if (month < YearMonth.now()) month = month.plusMonths(1) }) { Text("›", fontSize = 24.sp, color = if (month < YearMonth.now()) led else Muted) } }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { listOf("M", "T", "W", "T", "F", "S", "S").forEach { Text(it, color = Muted, fontSize = 9.sp, modifier = Modifier.width(35.dp), textAlign = TextAlign.Center) } }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { listOf("M", "T", "W", "T", "F", "S", "S").forEach { Text(it, color = if (dark) Muted else Color(0xFF555B61), fontSize = 9.sp, modifier = Modifier.width(35.dp), textAlign = TextAlign.Center) } }
         Spacer(Modifier.height(8.dp)); val offset = month.atDay(1).dayOfWeek.value - 1; val days: List<Int?> = List(offset) { null } + (1..month.lengthOfMonth()).map { it }
-        LazyVerticalGrid(columns = GridCells.Fixed(7), modifier = Modifier.fillMaxWidth().height(305.dp), userScrollEnabled = false, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { items(days) { day -> if (day == null) Spacer(Modifier.aspectRatio(1f)) else { val date = month.atDay(day).toString(); val steps = state.history[date] ?: if (date == state.today) state.todaySteps else 0; val ratio = (steps.toFloat() / state.goalSteps).coerceIn(0f, 1f); Box(Modifier.aspectRatio(1f).background(if (steps == 0) Glass else led.copy(alpha = .18f + ratio * .8f), RoundedCornerShape(7.dp)).clickable { selected = date }.then(if (date == selected) Modifier.border(1.dp, led, RoundedCornerShape(7.dp)) else Modifier), contentAlignment = Alignment.Center) { Text("$day", color = if (steps > state.goalSteps / 2) Color.Black else if (dark) Milk else Titanium, fontSize = 9.sp) } } } }
-        Spacer(Modifier.height(14.dp)); InstrumentPanel(dark, Modifier.fillMaxWidth()) { val chosen = if (selected == state.today) state.todaySteps else state.history[selected] ?: 0; val goalRatio = (chosen.toFloat() / state.goalSteps).coerceIn(0f, 1f); Text("FOOTPRINT · $selected", color = Muted, fontFamily = SpaceGrotesk, fontSize = 9.sp, letterSpacing = 1.5.sp); Text("%,d steps".format(chosen), color = if (dark) Milk else Titanium, fontFamily = SpaceGrotesk, fontSize = 26.sp, modifier = Modifier.padding(top = 5.dp)); Text("${(goalRatio * 100).toInt()}% of daily goal · ${chosen / 100} fragments earned", color = if (dark) led else led, fontFamily = Inter, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp)) }
+        LazyVerticalGrid(columns = GridCells.Fixed(7), modifier = Modifier.fillMaxWidth().height(305.dp), userScrollEnabled = false, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(days) { day ->
+                if (day == null) Spacer(Modifier.aspectRatio(1f)) else {
+                    val date = month.atDay(day).toString()
+                    val steps = state.history[date] ?: if (date == state.today) state.todaySteps else 0
+                    val ratio = (steps.toFloat() / state.goalSteps).coerceIn(0f, 1f)
+                    val dayBackground = if (steps == 0) {
+                        if (dark) Glass else Color(0xFFF1F2EF)
+                    } else led.copy(alpha = .18f + ratio * .8f)
+                    val dayText = if (android.graphics.Color.luminance(dayBackground.toArgb()) > .50f) Titanium else Milk
+                    Box(
+                        Modifier.aspectRatio(1f)
+                            .background(dayBackground, RoundedCornerShape(7.dp))
+                            .clickable { selected = date }
+                            .then(if (date == selected) Modifier.border(1.dp, led, RoundedCornerShape(7.dp)) else Modifier),
+                        contentAlignment = Alignment.Center
+                    ) { Text("$day", color = dayText, fontSize = 9.sp) }
+                }
+            }
+        }
+        Spacer(Modifier.height(14.dp)); InstrumentPanel(dark, Modifier.fillMaxWidth()) { val chosen = if (selected == state.today) state.todaySteps else state.history[selected] ?: 0; val goalRatio = (chosen.toFloat() / state.goalSteps).coerceIn(0f, 1f); Text("FOOTPRINT · $selected", color = if (dark) Muted else Color(0xFF555B61), fontFamily = SpaceGrotesk, fontSize = 9.sp, letterSpacing = 1.5.sp); Text("%,d steps".format(chosen), color = if (dark) Milk else Titanium, fontFamily = SpaceGrotesk, fontSize = 26.sp, modifier = Modifier.padding(top = 5.dp)); Text("${(goalRatio * 100).toInt()}% of daily goal · ${chosen / 100} fragments earned", color = if (dark) led else Color(0xFF454B51), fontFamily = Inter, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp)) }
         TextButton(onClick = { month = YearMonth.now(); selected = state.today }) { Text("RETURN TO TODAY", color = led, fontFamily = SpaceGrotesk, fontSize = 10.sp) }
     }
 }
@@ -218,17 +237,20 @@ private fun stageName(stage: Int) = listOf("MARIGOLD", "CITRUS", "EMBER", "GARNE
         val w = size.width; val h = size.height
         val amber = color
         fun footprint(cx: Float, cy: Float, scale: Float) {
-            drawOval(amber, androidx.compose.ui.geometry.Offset(cx - w * .10f * scale, cy - h * .24f * scale), androidx.compose.ui.geometry.Size(w * .20f * scale, h * .36f * scale))
-            drawOval(amber, androidx.compose.ui.geometry.Offset(cx - w * .075f * scale, cy + h * .13f * scale), androidx.compose.ui.geometry.Size(w * .15f * scale, h * .20f * scale))
+            // A compact sole with toe dots reads as a small footprint, not a boot.
+            drawOval(amber, androidx.compose.ui.geometry.Offset(cx - w * .075f * scale, cy - h * .06f * scale), androidx.compose.ui.geometry.Size(w * .15f * scale, h * .25f * scale))
+            drawCircle(amber, w * .037f * scale, androidx.compose.ui.geometry.Offset(cx - w * .07f * scale, cy - h * .16f * scale))
+            drawCircle(amber, w * .039f * scale, androidx.compose.ui.geometry.Offset(cx, cy - h * .19f * scale))
+            drawCircle(amber, w * .037f * scale, androidx.compose.ui.geometry.Offset(cx + w * .07f * scale, cy - h * .15f * scale))
         }
-        footprint(w * .40f, h * .34f, .90f)
-        footprint(w * .66f, h * .60f, .90f)
+        footprint(w * .38f, h * .35f, .72f)
+        footprint(w * .65f, h * .63f, .72f)
     }
 }
 
 @Composable private fun InstrumentPanel(dark: Boolean, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) { Column(modifier.shadow(10.dp, RoundedCornerShape(20.dp)).background(if (dark) Glass else Color(0xFFF8F9F7), RoundedCornerShape(20.dp)).border(1.dp, if (dark) Color(0xFF3A3D42) else Color(0xFFD0D5D2), RoundedCornerShape(20.dp)).padding(16.dp), content = content) }
-@Composable private fun SectionLabel(text: String, dark: Boolean) { Text(text, color = if (dark) Muted else Color(0xFF4E545A), fontFamily = SpaceGrotesk, fontSize = 9.sp, letterSpacing = 1.5.sp) }
-@Composable private fun ChoiceRow(text: String, selected: Boolean, color: Color, dark: Boolean, enabled: Boolean = true, onClick: () -> Unit) { val surface = if (dark) Glass else Color(0xFFF8F9F7); val ink = if (dark) Milk else Titanium; Row(Modifier.fillMaxWidth().padding(vertical = 4.dp).background(if (selected) color.copy(alpha = if (dark) .22f else .16f) else surface, RoundedCornerShape(12.dp)).border(if (selected) 1.dp else 0.dp, if (selected) color.copy(alpha = .75f) else Color.Transparent, RoundedCornerShape(12.dp)).clickable(enabled = enabled, onClick = onClick).padding(12.dp), verticalAlignment = Alignment.CenterVertically) { Text(if (selected) "●" else "○", color = if (enabled) color else Muted, fontSize = 14.sp); Spacer(Modifier.width(10.dp)); Text(text, color = if (enabled) ink else Muted, fontFamily = SpaceGrotesk, fontSize = 12.sp, modifier = Modifier.weight(1f)); if (selected) Text("SELECTED", color = color, fontFamily = Inter, fontSize = 8.sp) } }
+@Composable private fun SectionLabel(text: String, dark: Boolean) { Text(text, color = if (dark) Muted else Color(0xFF3F454B), fontFamily = SpaceGrotesk, fontSize = 9.sp, letterSpacing = 1.5.sp) }
+@Composable private fun ChoiceRow(text: String, selected: Boolean, color: Color, dark: Boolean, enabled: Boolean = true, onClick: () -> Unit) { val surface = if (dark) Glass else Color(0xFFF8F9F7); val ink = if (dark) Milk else Titanium; Row(Modifier.fillMaxWidth().padding(vertical = 4.dp).background(if (selected) color.copy(alpha = if (dark) .22f else .16f) else surface, RoundedCornerShape(12.dp)).border(if (selected) 1.dp else 0.dp, if (selected) color.copy(alpha = .75f) else Color.Transparent, RoundedCornerShape(12.dp)).clickable(enabled = enabled, onClick = onClick).padding(12.dp), verticalAlignment = Alignment.CenterVertically) { Text(if (selected) "●" else "○", color = if (enabled) color else Muted, fontSize = 14.sp); Spacer(Modifier.width(10.dp)); Text(text, color = if (enabled) ink else if (dark) Muted else Color(0xFF62676D), fontFamily = SpaceGrotesk, fontSize = 12.sp, modifier = Modifier.weight(1f)); if (selected) Text("SELECTED", color = if (dark) color else Titanium, fontFamily = Inter, fontSize = 8.sp) } }
 @Composable private fun ChoicePill(text: String, selected: Boolean, color: Color, onClick: () -> Unit) { Surface(onClick = onClick, color = if (selected) color.copy(alpha = .32f) else Glass, shape = RoundedCornerShape(20.dp)) { Text(text, color = if (selected) Milk else Muted, fontFamily = SpaceGrotesk, fontSize = 9.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) } }
 @Composable private fun SettingSwitch(label: String, checked: Boolean, led: Color, dark: Boolean, onChange: (Boolean) -> Unit) { Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) { Text(label, color = if (dark) Milk else Titanium, fontFamily = Inter, fontSize = 11.sp, modifier = Modifier.weight(1f)); Switch(checked = checked, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedThumbColor = led, checkedTrackColor = led.copy(alpha = .42f))) } }
 @Composable private fun PrimaryButton(label: String, color: Color, haptic: androidx.compose.ui.hapticfeedback.HapticFeedback, modifier: Modifier = Modifier, onClick: () -> Unit) { Button(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onClick() }, modifier = modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = if (android.graphics.Color.luminance(color.toArgb()) > .55f) Color.Black else Color.White), shape = RoundedCornerShape(25.dp)) { Text(label, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, letterSpacing = 1.sp) } }
