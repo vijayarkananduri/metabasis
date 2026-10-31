@@ -1,6 +1,6 @@
 # Metabasis
 
-Metabasis is an offline-first Android pedometer styled as a compact, tactile hardware dashboard. The v1 instrument uses a rectangular machined chassis, black-glass modules, a central `mb` monogram and five separated LED strips. The default logo is monochrome; users can switch it to their selected theme palette from Tune without changing the locked journey.
+Metabasis is an offline-first Android pedometer styled as a compact, tactile hardware dashboard. The v1 instrument uses a rectangular machined chassis, black-glass modules, a central `mb` monogram and five separated LED strips. The supplied amber footprint artwork is used consistently as the app, launcher, widget, and web-preview logo; LED themes affect the instrument accents without tinting the logo.
 
 The repository root also contains the static marketing page (`index.html`), detailed user guide (`metabasis-guide.html`), update page (`metabasis-updates.html`) and shared Alive UI-inspired stylesheet.
 
