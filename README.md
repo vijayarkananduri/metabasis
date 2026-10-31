@@ -1,28 +1,31 @@
 # Metabasis
 
-An open-source, offline-first step counter presented as a tactile hardware dashboard. Walking earns fragments; glass modules glow through five evolving stages. No streaks, accounts, analytics, or network permission.
+Metabasis is an offline-first Android pedometer styled as a compact, tactile hardware dashboard. A twin-footprint mark and dot-matrix ring accompany daily steps, fragments, stages and cycles. Its raised capsule navigation borrows the expanding selected-tab treatment from the companion Khata app.
 
-## Features
+## Step counting (no account or health-data connection)
 
-- Base dashboard: 24-dot stage ring, cycle/pass display, fragment progress, metallic chassis and inset black-glass modules.
-- Step ingestion from Android Health Connect with monotonic step totals and a carried sub-1,000-step remainder.
-- 1 fragment per 1,000 steps, configurable daily goal, stage progression and a two-calendar-day minimum between evolutions.
-- Traces: 12-week step grid and per-day Footprint detail.
-- Tune: five bundled theme palettes, dark/light chassis, goal control, and local JSON snapshot export/restore.
-- MIT licensed. No Internet permission or telemetry.
+Metabasis reads the phone's own Android sensors directly; it does **not** require Health Connect, Google Fit, a paired device, a login or an internet connection. The app prefers Android `TYPE_STEP_COUNTER` (hardware cumulative counter), then tries `TYPE_STEP_DETECTOR`, then a clearly marked approximate accelerometer fallback if needed. A foreground service keeps the sensor listener registered while the app is not open; a boot/package-update receiver attempts to resume it after restart when Android allows it. All recorded totals and settings stay in app-private local storage.
+
+On Android 10 and newer, grant **Physical activity** when prompted. That is Android's runtime permission for step sensors; it is not a connection to another app. Android 13 and newer may also ask to show the ongoing counter notification. Metabasis uses the first hardware-counter reading on first setup as a baseline, then records subsequent changes. This avoids incorrectly counting earlier steps accumulated since boot as today's steps. Therefore, new installations start counting from the first sensor baseline; they cannot reconstruct steps from before activation without an external historical provider.
+
+Device sensor behavior varies. The hardware counter is preferred but firmware can produce false or missed detections; no open-source project reviewed publishes a defensible universal accuracy percentage. The accelerometer fallback is less reliable and is explicitly labelled approximate. A persistent counter notification indicates that local tracking is active. Force-stopping the app, denied permissions, a missing sensor, or aggressive manufacturer battery controls can interrupt background collection; the service attempts restart where platform rules permit.
+
+## App features
+
+- **Base:** hardware-inspired step circle, 24-dot stage progress ring, cycle/pass display, fragment meter, live sensor state and a two-calendar-day minimum between evolutions.
+- **Traces:** 12-week daily step heatmap with selected-day detail and evolution entries.
+- **Tune:** five LED palettes, system/light/dark chassis, goal adjustment with a confirmation, and PRD-schema JSON import/export through Android's file picker.
+- One fragment per 1,000 newly recorded steps; stage cost is `goal_steps / 5` fragments. The ledger retains the remainder and date history locally.
+- No accounts, analytics, Health Connect dependency, `INTERNET` permission or advertising SDK.
 
 ## Build and install
 
-Open this repository in Android Studio (Giraffe or newer; JDK 17; Android SDK 35), then run the `app` configuration on Android 8.0+ (API 26). To build locally with Android command-line tools installed, run `gradle assembleDebug`. The APK is `app/build/outputs/apk/debug/app-debug.apk`.
+Open this repository in Android Studio (JDK 17; Android SDK 35), then run the `app` configuration on Android 8.0+ (API 26). With Android command-line tools and Gradle 8.10.2 installed, build locally with `gradle assembleDebug`. The APK is `app/build/outputs/apk/debug/app-debug.apk`.
 
-Every push to `main`, pull request, or manual run executes **Android debug APK** in GitHub Actions. Download the `metabasis-debug-apk` artifact from that workflow run. Pushing a `v*` tag also attaches the APK to the GitHub Release.
+Every push to `main`, pull request, or manual run executes **Android debug APK** in GitHub Actions. Download the `metabasis-debug-apk` artifact from the workflow run. Pushing a `v*` tag also attaches the debug APK to the GitHub Release.
 
-On first launch, install or update Health Connect if prompted, then tap **Connect** and grant read access to Steps. Step data is read on-device; all app state remains local. Without Health Connect, the dashboard and settings remain usable, but automatic step ingestion is unavailable.
+## Design notes and open-source review
 
-## Design / progression
+See [`docs/step-counter-design.md`](docs/step-counter-design.md) for a source-cited review of five open-source Android pedometers and why Metabasis favors a registered hardware-counter listener over Health Connect ingestion. Theme files are in `themes/`; contributor guidance is in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-See `themes/` for the five contributor-editable palettes. The stage cost is `goal_steps / 5` fragments. Sequence order rotates deterministically by cycle; each pass reverses before the next cycle. Progress is retained when the two-day floor blocks an evolution. See `CONTRIBUTING.md` for theme changes.
-
-## Platform note
-
-This repository currently builds the Android app/APK. The PRD names CMPedometer for iOS as well; native iOS support requires an Apple/Xcode signing build environment and is not produced by GitHub's Android APK workflow.
+The PRD also names CMPedometer for iOS. This repository currently builds the Android app; iOS requires an Apple/Xcode build and signing environment and is not produced by the Android workflow. The Android sensor accuracy and background behavior should be validated on real target phones before making product-level accuracy guarantees.
