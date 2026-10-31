@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#E91A1B20">
+    <TextView android:id="@+id/widget_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="METABASIS" android:textColor="#F5F5F2" android:textSize="11sp" android:letterSpacing="0.12" android:fontFamily="sans" />
+    <TextView android:id="@+id/widget_steps" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="0" android:textColor="#F5F5F2" android:textSize="32sp" android:textStyle="bold" android:fontFamily="sans" />
+    <TextView android:id="@+id/widget_goal" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="of 5,000 today" android:textColor="#B9BBC0" android:textSize="11sp" android:fontFamily="sans" />
+    <ProgressBar android:id="@+id/widget_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="12dp" android:max="100" android:progress="0" />
+    <View android:id="@+id/widget_accent" android:layout_width="26dp" android:layout_height="3dp" android:layout_marginTop="10dp" />
+    <TextView android:id="@+id/widget_stage" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="CYCLE 1 · STAGE 1 · 0%" android:textColor="#B9BBC0" android:textSize="10sp" android:fontFamily="sans" />
+</LinearLayout>

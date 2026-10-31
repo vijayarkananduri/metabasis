@@ -34,6 +34,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -155,13 +156,15 @@ private fun MetabasisApp() {
 
     MaterialTheme(colorScheme = if (dark) darkColorScheme(background=titanium, surface=glass, onSurface=milk, primary=currentLed) else lightColorScheme(background=chassis, surface=glass, onSurface=milk, primary=currentLed), typography=MetabasisTypography) {
         Box(Modifier.fillMaxSize().background(background)) {
-            Column(Modifier.fillMaxSize()) {
-                Header(dark, currentLed, state.sensorMode)
+            if (!state.introSeen) {
+                OnboardingScreen(dark, currentLed, onFinish = { name, goal, theme, appearance -> StepLedger.finishIntro(context, name, goal, theme, appearance); refresh() })
+            } else Column(Modifier.fillMaxSize()) {
+                Header(state, dark, currentLed, state.sensorMode)
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (selectedTab) {
                         0 -> BaseScreen(state, currentLed, dark, ::ensureCounter, permissionDenied)
                         1 -> TracesScreen(state, currentLed, dark)
-                        else -> TuneScreen(state, currentLed, dark, onTheme={ theme -> StepLedger.updateSettings(context, theme=theme); refresh() }, onGoal={ goal -> StepLedger.updateSettings(context, goal=goal); refresh() }, onAppearance={ appearance -> StepLedger.updateSettings(context, appearance=appearance); refresh() }, onExport={ exportLauncher.launch("metabasis-${LocalDate.now()}.json") }, onImport={ importLauncher.launch(arrayOf("application/json", "text/json", "*/*")) }, sensorMode=state.sensorMode)
+                        else -> TuneScreen(state, currentLed, dark, onTheme={ theme -> StepLedger.updateSettings(context, theme=theme); refresh() }, onGoal={ goal -> StepLedger.updateSettings(context, goal=goal); refresh() }, onAppearance={ appearance -> StepLedger.updateSettings(context, appearance=appearance); refresh() }, onLiveLogs={ enabled -> StepLedger.updateLiveLogs(context, enabled); refresh() }, onExport={ exportLauncher.launch("metabasis-${LocalDate.now()}.json") }, onImport={ importLauncher.launch(arrayOf("application/json", "text/json", "*/*")) }, sensorMode=state.sensorMode)
                     }
                 }
                 FloatingNavigation(selectedTab, currentLed, dark) { selectedTab = it }
@@ -174,13 +177,44 @@ private fun MetabasisApp() {
     importError?.let { message -> AlertDialog(onDismissRequest={importError=null}, title={Text("Data file")}, text={Text(message)}, confirmButton={TextButton(onClick={importError=null}) {Text("OK")}}) }
 }
 
-@Composable private fun Header(dark: Boolean, led: Color, sensorMode: String) {
-    Row(Modifier.fillMaxWidth().padding(start=22.dp, end=22.dp, top=16.dp, bottom=12.dp), verticalAlignment=Alignment.CenterVertically) {
+@Composable private fun OnboardingScreen(dark: Boolean, led: Color, onFinish: (String, Int, String, String) -> Unit) {
+    var page by remember { mutableIntStateOf(0) }
+    var name by remember { mutableStateOf("") }
+    var goal by remember { mutableFloatStateOf(5000f) }
+    var theme by remember { mutableStateOf("amber") }
+    var appearance by remember { mutableStateOf("system") }
+    val titleColor = if (dark) milk else titanium
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=24.dp, vertical=22.dp), horizontalAlignment=Alignment.CenterHorizontally) {
+        FootprintMark(led, Modifier.size(62.dp))
+        Spacer(Modifier.height(18.dp))
+        Text(if (page == 0) "WELCOME TO METABASIS" else "MAKE IT YOURS", color=titleColor, fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, fontSize=22.sp, letterSpacing=1.6.sp, textAlign=TextAlign.Center)
+        Text(if (page == 0) "A calm, adaptive step dashboard that changes with your rhythm." else "A small setup now. A dashboard that feels like yours after.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=12.sp, lineHeight=18.sp, textAlign=TextAlign.Center, modifier=Modifier.padding(top=10.dp))
+        if (page == 0) {
+            Text("Alive UI is software that feels alive: it adapts to your habits, context, and attention instead of holding you inside a rigid layout. Metabasis turns movement into a gentle visual journey.", color=if(dark) milk else titanium, fontFamily=Inter, fontSize=12.sp, lineHeight=19.sp, textAlign=TextAlign.Center, modifier=Modifier.padding(top=28.dp))
+            Spacer(Modifier.height(26.dp))
+            Button(onClick={page=1}, colors=ButtonDefaults.buttonColors(containerColor=led, contentColor=Color.Black), modifier=Modifier.fillMaxWidth().height(52.dp)) { Text("START SETUP", fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, letterSpacing=1.sp) }
+            TextButton(onClick={page=1}) { Text("SKIP INTRO", color=led, fontFamily=Inter) }
+        } else {
+            OutlinedTextField(value=name, onValueChange={name=it}, label={Text("Your name")}, placeholder={Text("What should Metabasis call you?")}, singleLine=true, modifier=Modifier.fillMaxWidth().padding(top=22.dp))
+            Spacer(Modifier.height(18.dp)); SectionLabel("DAILY STEP GOAL · ${goal.toInt()}", dark)
+            Slider(value=goal, onValueChange={goal=(it/500).toInt()*500f}, valueRange=2500f..15000f, steps=24, colors=SliderDefaults.colors(thumbColor=led, activeTrackColor=led))
+            SectionLabel("CHOOSE A COLOR WORLD", dark)
+            themeNames.forEachIndexed { index, label -> Row(Modifier.fillMaxWidth().padding(vertical=4.dp).background(glass, RoundedCornerShape(12.dp)).clickable { theme=themeIds[index] }.padding(12.dp), verticalAlignment=Alignment.CenterVertically) { Text(if(theme==themeIds[index]) "●" else "○", color=ledThemes[index][2]); Spacer(Modifier.width(10.dp)); Text(label, color=if(dark) milk else titanium, fontFamily=SpaceGrotesk, modifier=Modifier.weight(1f)); Box(Modifier.size(18.dp).background(ledThemes[index][2], CircleShape)) } }
+            Spacer(Modifier.height(16.dp)); SectionLabel("CHASSIS", dark)
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp), modifier=Modifier.padding(top=8.dp)) { listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key,label) -> Surface(onClick={appearance=key}, color=if(appearance==key) led.copy(alpha=.3f) else glass, shape=RoundedCornerShape(18.dp)) { Text(label, color=if(dark) milk else titanium, fontFamily=Inter, fontSize=11.sp, modifier=Modifier.padding(horizontal=14.dp, vertical=10.dp)) } } }
+            Spacer(Modifier.height(20.dp)); Button(onClick={onFinish(name, goal.toInt(), theme, appearance)}, colors=ButtonDefaults.buttonColors(containerColor=led, contentColor=Color.Black), modifier=Modifier.fillMaxWidth().height(52.dp)) { Text("OPEN MY DASHBOARD", fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, letterSpacing=1.sp) }
+        }
+        Text("You can revisit this introduction from Tune → Help.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=9.sp, textAlign=TextAlign.Center, modifier=Modifier.padding(top=18.dp))
+    }
+}
+
+@Composable private fun Header(state: AppState, dark: Boolean, led: Color, sensorMode: String) {
+    Row(Modifier.fillMaxWidth().padding(start=22.dp, end=22.dp, top=11.dp, bottom=8.dp), verticalAlignment=Alignment.CenterVertically) {
         FootprintMark(led, Modifier.size(34.dp))
         Spacer(Modifier.width(11.dp))
         Column(Modifier.weight(1f)) {
-            Text("METABASIS", fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, fontSize=14.sp, letterSpacing=2.4.sp, color=if(dark) milk else titanium)
-            Text(listOf("BASE", "TRACES", "TUNE").firstOrNull { it==sensorMode } ?: "HARDWARE STEP COUNTER", fontFamily=Inter, fontSize=9.sp, letterSpacing=1.4.sp, color=if(dark) muted else Color(0xFF666A70), maxLines=1)
+            Text(if (state.userName.isBlank()) "METABASIS" else state.userName.uppercase(), fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, fontSize=14.sp, letterSpacing=2.1.sp, color=if(dark) milk else titanium)
+            Text("METABASIS  ·  ALIVE DASHBOARD", fontFamily=Inter, fontSize=8.sp, letterSpacing=1.1.sp, color=if(dark) muted else Color(0xFF666A70), maxLines=1)
         }
         Box(Modifier.size(10.dp).background(led, CircleShape).shadow(7.dp, CircleShape))
     }
@@ -225,22 +259,19 @@ private fun MetabasisApp() {
         Row(Modifier.fillMaxWidth().background(glass, RoundedCornerShape(16.dp)).padding(horizontal=14.dp, vertical=12.dp), verticalAlignment=Alignment.CenterVertically) {
             FootprintMark(led, Modifier.size(28.dp)); Spacer(Modifier.width(11.dp))
             Column(Modifier.weight(1f)) {
-                Text(state.sensorMode.uppercase(), color=milk, fontFamily=SpaceGrotesk, fontSize=9.sp, letterSpacing=.8.sp, maxLines=1)
-                Text(if(state.sensorMode.contains("fallback", true)) "Uses phone motion; approximate" else "On-device counting · no account or sync", color=muted, fontFamily=Inter, fontSize=9.sp)
+                Text("LOCAL STEP LOG", color=milk, fontFamily=SpaceGrotesk, fontSize=9.sp, letterSpacing=.8.sp, maxLines=1)
+                Text("Today · ${state.today} · ${state.todaySteps} steps recorded", color=muted, fontFamily=Inter, fontSize=9.sp, maxLines=1)
             }
             if (denied || state.sensorMode.contains("No compatible", true)) Text("SETUP", color=led, fontFamily=SpaceGrotesk, fontSize=9.sp, modifier=Modifier.clickable(onClick=ensureCounter).padding(8.dp))
         }
-        if (denied) {
-            Text("Allow Physical activity so Android can read the built-in step sensor.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=10.sp, textAlign=TextAlign.Center, modifier=Modifier.padding(top=8.dp))
-        } else if(state.sensorMode.contains("Starting", true)) {
-            Text("Starting the local step counter…", color=if(dark) muted else Color.DarkGray, fontSize=10.sp, modifier=Modifier.padding(top=8.dp))
+        if (state.showLiveLogs) {
+            Column(Modifier.fillMaxWidth().background(Color(0x14000000), RoundedCornerShape(14.dp)).padding(horizontal=14.dp, vertical=10.dp)) {
+                Text("LIVE LOG", color=led, fontFamily=SpaceGrotesk, fontSize=9.sp, letterSpacing=1.4.sp)
+                if (state.liveLogs.isEmpty()) Text("No new step events yet.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=10.sp, modifier=Modifier.padding(top=6.dp))
+                else state.liveLogs.asReversed().take(4).forEach { entry -> Text(entry, color=if(dark) milk else titanium, fontFamily=Inter, fontSize=10.sp, modifier=Modifier.padding(top=5.dp)) }
+            }
         }
-        Spacer(Modifier.height(14.dp))
-        Row(Modifier.fillMaxWidth().background(Color(0x18000000), RoundedCornerShape(14.dp)).padding(13.dp), verticalAlignment=Alignment.CenterVertically) {
-            Text("TWO-DAY FLOOR", color=led, fontFamily=SpaceGrotesk, fontSize=9.sp, letterSpacing=1.3.sp)
-            Spacer(Modifier.weight(1f)); Text("No rush. Progress never expires.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=9.sp)
-        }
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
     }
 }
 
@@ -262,7 +293,7 @@ private fun MetabasisApp() {
     var showDetail by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=20.dp)) {
         Text("TRACES", color=if(dark) milk else titanium, fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, fontSize=22.sp, letterSpacing=2.sp)
-        Text("84 days of movement. No streaks, no penalty.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=11.sp, modifier=Modifier.padding(top=4.dp,bottom=20.dp))
+        Text("CALENDAR + HEATMAP · tap a day for its result", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=11.sp, modifier=Modifier.padding(top=4.dp,bottom=14.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween) { listOf("M","T","W","T","F","S","S").forEach { Text(it, color=muted, fontSize=9.sp, modifier=Modifier.width(35.dp), textAlign=TextAlign.Center) } }
         Spacer(Modifier.height(8.dp))
         val days=(83 downTo 0).map { LocalDate.now().minusDays(it.toLong()).toString() }
@@ -270,7 +301,8 @@ private fun MetabasisApp() {
             items(days) { day ->
                 val steps=state.history[day] ?: 0
                 val ratio=(steps.toFloat()/state.goalSteps).coerceIn(0f,1f)
-                Box(Modifier.aspectRatio(1f).background(if(steps==0) glass else led.copy(alpha=.22f+ratio*.78f), RoundedCornerShape(5.dp)).clickable { selected=day; showDetail=true }) {
+                Box(Modifier.aspectRatio(1f).background(if(steps==0) glass else led.copy(alpha=.22f+ratio*.78f), RoundedCornerShape(5.dp)).clickable { selected=day; showDetail=true }, contentAlignment=Alignment.Center) {
+                    Text(day.substring(8, 10), color=if(steps == 0) muted else if (ratio > .55f) Color.Black.copy(alpha=.72f) else milk, fontFamily=Inter, fontSize=8.sp)
                     if(day==selected) Canvas(Modifier.fillMaxSize()) { drawRoundRect(Color.White.copy(alpha=.8f), style=Stroke(1.2.dp.toPx()), cornerRadius=androidx.compose.ui.geometry.CornerRadius(5.dp.toPx())) }
                 }
             }
@@ -300,23 +332,29 @@ private fun MetabasisApp() {
     }
 }
 
-@Composable private fun TuneScreen(state: AppState, led: Color, dark: Boolean, onTheme:(String)->Unit, onGoal:(Int)->Unit, onAppearance:(String)->Unit, onExport:()->Unit, onImport:()->Unit, sensorMode:String) {
+@Composable private fun TuneScreen(state: AppState, led: Color, dark: Boolean, onTheme:(String)->Unit, onGoal:(Int)->Unit, onAppearance:(String)->Unit, onExport:()->Unit, onImport:()->Unit, onLiveLogs:(Boolean)->Unit = {}, sensorMode:String) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=20.dp)) {
         Text("TUNE", color=if(dark) milk else titanium, fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, fontSize=22.sp, letterSpacing=2.sp)
         Text("Adjust the instrument. Your ledger stays local.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=11.sp, modifier=Modifier.padding(top=4.dp,bottom=18.dp))
         SectionLabel("LED THEMES", dark)
         themeNames.forEachIndexed { index, name ->
             val id=themeIds[index]
-            Row(Modifier.fillMaxWidth().padding(vertical=4.dp).background(glass,RoundedCornerShape(13.dp)).clickable { onTheme(id) }.padding(13.dp), verticalAlignment=Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(vertical=4.dp).background(glass,RoundedCornerShape(13.dp)).clickable(enabled=!state.themeLocked) { onTheme(id) }.padding(13.dp), verticalAlignment=Alignment.CenterVertically) {
                 Text(if(state.themeId==id) "●" else "○", color=ledThemes[index][2], fontSize=14.sp); Spacer(Modifier.width(12.dp)); Text(name, color=milk, fontFamily=SpaceGrotesk, fontSize=12.sp, modifier=Modifier.weight(1f))
                 ledThemes[index].forEach { Box(Modifier.padding(start=4.dp).size(13.dp).background(it,CircleShape)) }
             }
         }
+        Text(if (state.themeLocked) "Theme locked after your first stage pass." else "Your chosen theme locks when you pass the first stage.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=9.sp, modifier=Modifier.padding(top=5.dp))
         Spacer(Modifier.height(16.dp)); SectionLabel("GOAL · ${state.goalSteps} STEPS", dark)
         var slider by remember(state.goalSteps) { mutableFloatStateOf(state.goalSteps.toFloat()) }
         var pendingGoal by remember { mutableStateOf<Int?>(null) }
         Slider(value=slider,onValueChange={slider=(it/500).toInt()*500f},onValueChangeFinished={slider.toInt().coerceIn(2500,15000).takeIf { it!=state.goalSteps }?.let { pendingGoal=it }},valueRange=2500f..15000f,steps=24,colors=SliderDefaults.colors(thumbColor=led,activeTrackColor=led))
         Text("Stage cost: ${state.stageCost} fragments · five stages per pass", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=10.sp)
+        Spacer(Modifier.height(16.dp)); SectionLabel("LIVE LOGS", dark)
+        Row(Modifier.fillMaxWidth().padding(top=7.dp), verticalAlignment=Alignment.CenterVertically) {
+            Text("Show recent step times on Base", color=if(dark) milk else titanium, fontFamily=Inter, fontSize=11.sp, modifier=Modifier.weight(1f))
+            Switch(checked=state.showLiveLogs, onCheckedChange=onLiveLogs, colors=androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor=led, checkedTrackColor=led.copy(alpha=.45f)))
+        }
         Spacer(Modifier.height(16.dp)); SectionLabel("CHASSIS", dark)
         listOf("system" to "System", "light" to "Brushed silver", "dark" to "Titanium black").forEach { (key,label) ->
             Row(Modifier.fillMaxWidth().clickable { onAppearance(key) }.padding(vertical=7.dp), verticalAlignment=Alignment.CenterVertically) {
@@ -331,8 +369,8 @@ private fun MetabasisApp() {
         Text("Import and export the PRD schema through Android's file picker.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=9.sp, modifier=Modifier.padding(top=7.dp))
         Spacer(Modifier.height(16.dp)); SectionLabel("STEP ENGINE", dark)
         Text(sensorMode, color=led, fontFamily=SpaceGrotesk, fontSize=11.sp, modifier=Modifier.padding(top=8.dp))
-        Text("Uses the phone's built-in motion sensor only. The hardware step counter is preferred; the accelerometer fallback is approximate. Counts and history remain on this device.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=10.sp, lineHeight=15.sp, modifier=Modifier.padding(top=5.dp,bottom=20.dp))
-        pendingGoal?.let { target -> AlertDialog(onDismissRequest={pendingGoal=null}, title={Text("Change your stage pace?")}, text={Text("The stage cost updates to ${target/5} fragments. Current fragments and the two-day floor stay in place.")}, confirmButton={TextButton(onClick={onGoal(target);pendingGoal=null}) {Text("Apply")}}, dismissButton={TextButton(onClick={pendingGoal=null}) {Text("Cancel")}}) }
+        Text("Local counting stays on this device. The dashboard only shows the step history you choose to keep.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=10.sp, lineHeight=15.sp, modifier=Modifier.padding(top=5.dp,bottom=20.dp))
+        pendingGoal?.let { target -> AlertDialog(onDismissRequest={pendingGoal=null}, title={Text("Change your stage pace?")}, text={Text("The stage cost updates to ${target/5} fragments. Your current fragments stay in place.")}, confirmButton={TextButton(onClick={onGoal(target);pendingGoal=null}) {Text("Apply")}}, dismissButton={TextButton(onClick={pendingGoal=null}) {Text("Cancel")}}) }
     }
 }
 
