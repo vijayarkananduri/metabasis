@@ -13,6 +13,8 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.core.app.NotificationCompat
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -70,12 +72,18 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onSensorChanged(event: SensorEvent) {
+        val before = StepLedger.load(this)
         when (event.sensor.type) {
             Sensor.TYPE_STEP_COUNTER -> StepLedger.recordHardwareTotal(this, event.values[0].toLong())
             Sensor.TYPE_STEP_DETECTOR -> StepLedger.recordDetectedStep(this, event.values[0].toInt().coerceAtLeast(1))
             Sensor.TYPE_ACCELEROMETER -> detectAccelerometerStep(event)
         }
         val state = StepLedger.load(this)
+        if (state.hapticsEnabled && state.fragments != before.fragments) {
+            val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+            if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(VibrationEffect.createOneShot(if (state.lastEvolutionAt != before.lastEvolutionAt) 28L else 10L, if (state.lastEvolutionAt != before.lastEvolutionAt) VibrationEffect.DEFAULT_AMPLITUDE else 35))
+            else @Suppress("DEPRECATION") vibrator.vibrate(if (state.lastEvolutionAt != before.lastEvolutionAt) 28L else 10L)
+        }
         val now = System.currentTimeMillis()
         if (abs(state.todaySteps - lastNotifiedSteps) >= 25 || now - lastNotifiedAt >= 60_000L) {
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager

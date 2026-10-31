@@ -4,12 +4,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="#E91A1B20">
-    <TextView android:id="@+id/widget_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="METABASIS" android:textColor="#F5F5F2" android:textSize="11sp" android:letterSpacing="0.12" android:fontFamily="sans" />
-    <TextView android:id="@+id/widget_steps" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="0" android:textColor="#F5F5F2" android:textSize="32sp" android:textStyle="bold" android:fontFamily="sans" />
-    <TextView android:id="@+id/widget_goal" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="of 5,000 today" android:textColor="#B9BBC0" android:textSize="11sp" android:fontFamily="sans" />
-    <ProgressBar android:id="@+id/widget_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="12dp" android:max="100" android:progress="0" />
-    <View android:id="@+id/widget_accent" android:layout_width="26dp" android:layout_height="3dp" android:layout_marginTop="10dp" />
-    <TextView android:id="@+id/widget_stage" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="CYCLE 1 · STAGE 1 · 0%" android:textColor="#B9BBC0" android:textSize="10sp" android:fontFamily="sans" />
+    android:padding="14dp"
+    android:background="#EF111214">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/widget_mark" android:layout_width="28dp" android:layout_height="28dp" android:gravity="center" android:text="mb" android:textColor="#F4F4F0" android:textSize="11sp" android:textStyle="bold" android:fontFamily="sans" />
+        <TextView android:id="@+id/widget_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:text="Good morning, Walker" android:textColor="#F5F5F2" android:textSize="11sp" android:letterSpacing="0.04" android:fontFamily="sans" />
+        <View android:id="@+id/widget_status" android:layout_width="7dp" android:layout_height="7dp" android:background="#5FA83D" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_led_strip" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="8dp" android:orientation="horizontal" android:weightSum="5">
+        <View android:id="@+id/widget_led_1" android:layout_width="0dp" android:layout_height="3dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="#D3D7DA" />
+        <View android:id="@+id/widget_led_2" android:layout_width="0dp" android:layout_height="3dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="#E1E4E6" />
+        <View android:id="@+id/widget_led_3" android:layout_width="0dp" android:layout_height="3dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="#F4F4F0" />
+        <View android:id="@+id/widget_led_4" android:layout_width="0dp" android:layout_height="3dp" android:layout_weight="1" android:layout_marginEnd="3dp" android:background="#B9BEC3" />
+        <View android:id="@+id/widget_led_5" android:layout_width="0dp" android:layout_height="3dp" android:layout_weight="1" android:background="#E8EAEB" />
+    </LinearLayout>
+    <TextView android:id="@+id/widget_steps" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="0" android:textColor="#F5F5F2" android:textSize="29sp" android:textStyle="bold" android:fontFamily="sans" />
+    <TextView android:id="@+id/widget_goal" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="of 5,000 today" android:textColor="#B9BBC0" android:textSize="10sp" android:fontFamily="sans" />
+    <ProgressBar android:id="@+id/widget_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="9dp" android:max="100" android:progress="0" />
+    <TextView android:id="@+id/widget_stage" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="CYCLE 1 · STAGE 1 · 0%" android:textColor="#B9BBC0" android:textSize="9sp" android:fontFamily="sans" />
 </LinearLayout>

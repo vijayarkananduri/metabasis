@@ -1,6 +1,8 @@
 # Metabasis
 
-Metabasis is an offline-first Android pedometer styled as a compact, tactile hardware dashboard. A twin-footprint mark and dot-matrix ring accompany daily steps, fragments, stages and cycles. Its raised capsule navigation borrows the expanding selected-tab treatment from the companion Khata app.
+Metabasis is an offline-first Android pedometer styled as a compact, tactile hardware dashboard. The v1 instrument uses a rectangular machined chassis, black-glass modules, a central `mb` monogram and five separated LED strips. The default logo is monochrome; users can switch it to their selected theme palette from Tune without changing the locked journey.
+
+The repository root also contains the static marketing page (`index.html`), detailed user guide (`metabasis-guide.html`), update page (`metabasis-updates.html`) and shared Alive UI-inspired stylesheet.
 
 ## Step counting (no account or health-data connection)
 
@@ -23,6 +25,8 @@ Device sensor behavior varies. The hardware counter is preferred but firmware ca
 Open this repository in Android Studio (JDK 17; Android SDK 35), then run the `app` configuration on Android 8.0+ (API 26). With Android command-line tools and Gradle 8.10.2 installed, build locally with `gradle assembleDebug`. The APK is `app/build/outputs/apk/debug/app-debug.apk`.
 
 Every push to `main`, pull request, or manual run executes **Android debug APK** in GitHub Actions. Download the `metabasis-debug-apk` artifact from the workflow run. Pushing a `v*` tag also attaches the debug APK to the GitHub Release.
+
+The v1 workflow intentionally produces an unsigned debug APK for testing. Use the `metabasis-debug-apk` artifact from the latest Actions run, or open the GitHub Release created from a `v*` tag.
 
 ## Design notes and open-source review
 
