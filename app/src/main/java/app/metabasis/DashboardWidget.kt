@@ -28,6 +28,7 @@ class DashboardWidget : AppWidgetProvider() {
         val tint = try {
             android.graphics.Color.parseColor(themeColor(state.themeId))
         } catch (_: Exception) { Color.rgb(255, 161, 51) }
+        views.setInt(R.id.widget_status, "setBackgroundColor", tint)
         val hour = java.time.LocalTime.now().hour
         val salutation = when { hour < 5 -> "Rest well"; hour < 12 -> "Good morning"; hour < 17 -> "Good afternoon"; hour < 22 -> "Good evening"; else -> "Good night" }
         views.setTextViewText(R.id.widget_name, "$salutation, ${state.userName.ifBlank { "Walker" }}")

@@ -17,7 +17,7 @@ Device sensor behavior varies. The hardware counter is preferred but firmware ca
 - **Base:** hardware-inspired step circle, 24-dot stage progress ring, cycle/pass display, fragment meter, live sensor state and a two-calendar-day minimum between evolutions.
 - **Traces:** 12-week daily step heatmap with selected-day detail and evolution entries.
 - **Tune:** five LED palettes, system/light/dark chassis, goal adjustment with a confirmation, and PRD-schema JSON import/export through Android's file picker.
-- One fragment per 1,000 newly recorded steps; stage cost is `goal_steps / 5` fragments. The ledger retains the remainder and date history locally.
+- One fragment per 1,000 newly recorded steps; a stage costs five goal-days of fragments (for a 5,000-step goal, 25 fragments). The ledger retains the remainder and date history locally.
 - No accounts, analytics, Health Connect dependency, `INTERNET` permission or advertising SDK.
 
 ## Build and install

@@ -9,6 +9,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
 
 internal data class Evolution(val date: String, val from: String, val to: String, val cycle: Int, val pass: String, val spent: Int)
@@ -40,7 +41,7 @@ internal data class AppState(
     val showLiveLogs: Boolean = true,
     val hapticsEnabled: Boolean = true
 ) {
-    val stageCost: Int get() = (goalSteps / 5).coerceAtLeast(1)
+    val stageCost: Int get() = (((goalSteps + 999) / 1000) * 5).coerceAtLeast(5)
     private val pattern: List<Int> get() = when (cycle) {
         1 -> listOf(0, 1, 2, 3, 4)
         2 -> listOf(0, 2, 4, 1, 3)
@@ -116,6 +117,8 @@ internal object StepLedger {
     private fun evolveIfReady(input: AppState): AppState {
         if (input.fragments < input.stageCost) return input
         val today = LocalDate.now(ZoneId.systemDefault())
+        val last = runCatching { LocalDate.parse(input.lastCompletionDate) }.getOrNull()
+        if (input.evolutions.isNotEmpty() && last != null && ChronoUnit.DAYS.between(last, today) < 2) return input
         val from = stageName(input.stage)
         val spent = input.stageCost
         val oldPass = input.pass
@@ -130,7 +133,8 @@ internal object StepLedger {
     fun updateSettings(context: Context, goal: Int? = null, theme: String? = null, logoMode: String? = null, appearance: String? = null, userName: String? = null) {
         val old = load(context)
         val chosenTheme = if (old.themeLocked) old.themeId else theme ?: old.themeId
-        save(context, old.copy(goalSteps = goal?.coerceIn(2500, 15000) ?: old.goalSteps, themeId = chosenTheme, logoMode = logoMode ?: old.logoMode, appearance = appearance ?: old.appearance, userName = userName ?: old.userName))
+        val next = old.copy(goalSteps = goal?.coerceIn(2500, 15000) ?: old.goalSteps, themeId = chosenTheme, logoMode = logoMode ?: old.logoMode, appearance = appearance ?: old.appearance, userName = userName ?: old.userName)
+        save(context, if (goal != null) evolveIfReady(next) else next)
     }
 
     fun updateLiveLogs(context: Context, enabled: Boolean) = save(context, load(context).copy(showLiveLogs = enabled))
@@ -157,7 +161,11 @@ internal object StepLedger {
         val config = root.getJSONObject("user_config"); val progress = root.getJSONObject("progress")
         val history = mutableMapOf<String, Int>(); val rows = root.optJSONArray("history") ?: JSONArray()
         for (i in 0 until rows.length()) { val row = rows.getJSONObject(i); history[LocalDate.parse(row.getString("date")).toString()] = row.optInt("steps").coerceAtLeast(0) }
-        return AppState(goalSteps = config.optInt("goal_steps", 5000).coerceIn(2500, 15000), themeId = config.optString("theme_id", "amber"), logoMode = config.optString("logo_mode", "monochrome"), appearance = config.optString("appearance", "system"), userName = config.optString("user_name", ""), introSeen = config.optBoolean("intro_seen", false), themeLocked = config.optBoolean("theme_locked", false), cycle = progress.optInt("current_cycle", 1).coerceAtLeast(1), pass = if (progress.optString("current_pass") == "reverse") "reverse" else "forward", stageIndex = progress.optInt("current_stage_index").coerceIn(0, 4), fragments = progress.optInt("current_fragments").coerceAtLeast(0), stepRemainder = progress.optInt("step_remainder").coerceIn(0, 999), lastCompletionDate = progress.optString("last_completion_date", LocalDate.now().toString()), today = progress.optString("last_recorded_steps_date", LocalDate.now().toString()), todaySteps = progress.optInt("last_recorded_steps_today").coerceAtLeast(0), history = history, sensorMode = sensorMode)
+        val events = mutableListOf<Evolution>(); val eventRows = root.optJSONArray("evolutions") ?: JSONArray()
+        for (i in 0 until eventRows.length()) { val e = eventRows.getJSONObject(i); events += Evolution(e.optString("date"), e.optString("from"), e.optString("to"), e.optInt("cycle", 1), e.optString("pass", "forward"), e.optInt("spent")) }
+        val logs = mutableListOf<String>(); val logRows = root.optJSONArray("live_logs") ?: JSONArray(); for (i in 0 until logRows.length()) logs += logRows.optString(i)
+        val logTimes = mutableListOf<Long>(); val timeRows = root.optJSONArray("live_log_times") ?: JSONArray(); for (i in 0 until timeRows.length()) logTimes += timeRows.optLong(i)
+        return AppState(goalSteps = config.optInt("goal_steps", 5000).coerceIn(2500, 15000), themeId = config.optString("theme_id", "amber"), logoMode = config.optString("logo_mode", "monochrome"), appearance = config.optString("appearance", "system"), userName = config.optString("user_name", ""), introSeen = config.optBoolean("intro_seen", false), themeLocked = config.optBoolean("theme_locked", false), cycle = progress.optInt("current_cycle", 1).coerceAtLeast(1), pass = if (progress.optString("current_pass") == "reverse") "reverse" else "forward", stageIndex = progress.optInt("current_stage_index").coerceIn(0, 4), fragments = progress.optInt("current_fragments").coerceAtLeast(0), stepRemainder = progress.optInt("step_remainder", 0).coerceIn(0, 999), lastCompletionDate = progress.optString("last_completion_date", LocalDate.now().toString()), today = progress.optString("last_recorded_steps_date", LocalDate.now().toString()), todaySteps = progress.optInt("last_recorded_steps_today").coerceAtLeast(0), history = history, evolutions = events, sensorMode = sensorMode, lastEvolutionAt = root.optLong("last_evolution_at"), lastEvolutionFrom = root.optString("last_evolution_from"), lastEvolutionTo = root.optString("last_evolution_to"), liveLogs = logs.takeLast(5), liveLogTimes = logTimes.takeLast(5), showLiveLogs = root.optBoolean("show_live_logs", true), hapticsEnabled = config.optBoolean("haptics_enabled", true))
     }
 
     private fun stageName(index: Int): String = when (index) { 0 -> "MARIGOLD"; 1 -> "CITRUS"; 2 -> "EMBER"; 3 -> "GARNET"; else -> "DUSK" }

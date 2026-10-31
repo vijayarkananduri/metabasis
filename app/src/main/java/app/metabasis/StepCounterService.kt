@@ -79,7 +79,7 @@ class StepCounterService : Service(), SensorEventListener {
             Sensor.TYPE_ACCELEROMETER -> detectAccelerometerStep(event)
         }
         val state = StepLedger.load(this)
-        if (state.hapticsEnabled && state.fragments != before.fragments) {
+        if (state.hapticsEnabled && (state.fragments != before.fragments || state.lastEvolutionAt != before.lastEvolutionAt || state.stage != before.stage || state.pass != before.pass || state.cycle != before.cycle)) {
             val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
             if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(VibrationEffect.createOneShot(if (state.lastEvolutionAt != before.lastEvolutionAt) 28L else 10L, if (state.lastEvolutionAt != before.lastEvolutionAt) VibrationEffect.DEFAULT_AMPLITUDE else 35))
             else @Suppress("DEPRECATION") vibrator.vibrate(if (state.lastEvolutionAt != before.lastEvolutionAt) 28L else 10L)
