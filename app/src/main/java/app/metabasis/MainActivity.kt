@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import java.time.LocalDate
+import java.time.YearMonth
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
@@ -152,12 +153,12 @@ private fun MetabasisApp() {
     val dark = state.appearance == "dark" || (state.appearance == "system" && (context.resources.configuration.uiMode and 0x30) == 0x20)
     val background = if (dark) titanium else chassis
     val stageColor = cycleColor(ledThemes.getOrElse(themeIds.indexOf(state.themeId).coerceAtLeast(0)) { ledThemes[0] }[state.stage], state.cycle)
-    val currentLed by animateColorAsState(stageColor.copy(alpha=.2f + state.progress*.8f), tween(3000), label="stage-led-crossfade")
+    val currentLed by animateColorAsState(stageColor.copy(alpha=.28f + state.progress*.72f), tween(3000), label="stage-led-crossfade")
 
     MaterialTheme(colorScheme = if (dark) darkColorScheme(background=titanium, surface=glass, onSurface=milk, primary=currentLed) else lightColorScheme(background=chassis, surface=glass, onSurface=milk, primary=currentLed), typography=MetabasisTypography) {
         Box(Modifier.fillMaxSize().background(background)) {
             if (!state.introSeen) {
-                OnboardingScreen(dark, currentLed, onFinish = { name, goal, theme, appearance -> StepLedger.finishIntro(context, name, goal, theme, appearance); refresh() })
+                OnboardingScreen(dark, stageColor, onFinish = { name, goal, theme, appearance -> StepLedger.finishIntro(context, name, goal, theme, appearance); refresh() })
             } else Column(Modifier.fillMaxSize()) {
                 Header(state, dark, currentLed, state.sensorMode)
                 Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -170,7 +171,7 @@ private fun MetabasisApp() {
                 FloatingNavigation(selectedTab, currentLed, dark) { selectedTab = it }
             }
             if (state.lastEvolutionAt > 0L && System.currentTimeMillis() - state.lastEvolutionAt < 10_000L) {
-                EvolutionToast(state, currentLed, dark, Modifier.align(Alignment.BottomCenter).padding(bottom=104.dp))
+                EvolutionToast(state, currentLed, dark, Modifier.align(Alignment.BottomCenter).padding(bottom=126.dp))
             }
         }
     }
@@ -184,32 +185,32 @@ private fun MetabasisApp() {
     var theme by remember { mutableStateOf("amber") }
     var appearance by remember { mutableStateOf("system") }
     val titleColor = if (dark) milk else titanium
+    val buttonText = if (android.graphics.Color.luminance(led.toArgb()) > .55f) Color.Black else Color.White
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=24.dp, vertical=22.dp), horizontalAlignment=Alignment.CenterHorizontally) {
-        FootprintMark(led, Modifier.size(62.dp))
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(8.dp))
         Text(if (page == 0) "WELCOME TO METABASIS" else "MAKE IT YOURS", color=titleColor, fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, fontSize=22.sp, letterSpacing=1.6.sp, textAlign=TextAlign.Center)
         Text(if (page == 0) "A calm, adaptive step dashboard that changes with your rhythm." else "A small setup now. A dashboard that feels like yours after.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=12.sp, lineHeight=18.sp, textAlign=TextAlign.Center, modifier=Modifier.padding(top=10.dp))
         if (page == 0) {
             Text("Alive UI is software that feels alive: it adapts to your habits, context, and attention instead of holding you inside a rigid layout. Metabasis turns movement into a gentle visual journey.", color=if(dark) milk else titanium, fontFamily=Inter, fontSize=12.sp, lineHeight=19.sp, textAlign=TextAlign.Center, modifier=Modifier.padding(top=28.dp))
             Spacer(Modifier.height(26.dp))
-            Button(onClick={page=1}, colors=ButtonDefaults.buttonColors(containerColor=led, contentColor=Color.Black), modifier=Modifier.fillMaxWidth().height(52.dp)) { Text("START SETUP", fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, letterSpacing=1.sp) }
+            Button(onClick={page=1}, colors=ButtonDefaults.buttonColors(containerColor=led.copy(alpha=1f), contentColor=buttonText), modifier=Modifier.fillMaxWidth().height(52.dp).shadow(8.dp, RoundedCornerShape(26.dp))) { Text("START SETUP", fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, letterSpacing=1.sp) }
             TextButton(onClick={page=1}) { Text("SKIP INTRO", color=led, fontFamily=Inter) }
         } else {
             OutlinedTextField(value=name, onValueChange={name=it}, label={Text("Your name")}, placeholder={Text("What should Metabasis call you?")}, singleLine=true, modifier=Modifier.fillMaxWidth().padding(top=22.dp))
             Spacer(Modifier.height(18.dp)); SectionLabel("DAILY STEP GOAL · ${goal.toInt()}", dark)
             Slider(value=goal, onValueChange={goal=(it/500).toInt()*500f}, valueRange=2500f..15000f, steps=24, colors=SliderDefaults.colors(thumbColor=led, activeTrackColor=led))
             SectionLabel("CHOOSE A COLOR WORLD", dark)
-            themeNames.forEachIndexed { index, label -> Row(Modifier.fillMaxWidth().padding(vertical=4.dp).background(glass, RoundedCornerShape(12.dp)).clickable { theme=themeIds[index] }.padding(12.dp), verticalAlignment=Alignment.CenterVertically) { Text(if(theme==themeIds[index]) "●" else "○", color=ledThemes[index][2]); Spacer(Modifier.width(10.dp)); Text(label, color=if(dark) milk else titanium, fontFamily=SpaceGrotesk, modifier=Modifier.weight(1f)); Box(Modifier.size(18.dp).background(ledThemes[index][2], CircleShape)) } }
+            themeNames.forEachIndexed { index, label -> Row(Modifier.fillMaxWidth().padding(vertical=4.dp).background(if (theme==themeIds[index]) led.copy(alpha=.24f) else glass, RoundedCornerShape(12.dp)).clickable { theme=themeIds[index] }.padding(12.dp), verticalAlignment=Alignment.CenterVertically) { Text(if(theme==themeIds[index]) "●" else "○", color=ledThemes[index][2]); Spacer(Modifier.width(10.dp)); Text(label, color=if(dark) milk else titanium, fontFamily=SpaceGrotesk, modifier=Modifier.weight(1f)); Box(Modifier.size(18.dp).background(ledThemes[index][2], CircleShape)) } }
             Spacer(Modifier.height(16.dp)); SectionLabel("CHASSIS", dark)
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp), modifier=Modifier.padding(top=8.dp)) { listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key,label) -> Surface(onClick={appearance=key}, color=if(appearance==key) led.copy(alpha=.3f) else glass, shape=RoundedCornerShape(18.dp)) { Text(label, color=if(dark) milk else titanium, fontFamily=Inter, fontSize=11.sp, modifier=Modifier.padding(horizontal=14.dp, vertical=10.dp)) } } }
-            Spacer(Modifier.height(20.dp)); Button(onClick={onFinish(name, goal.toInt(), theme, appearance)}, colors=ButtonDefaults.buttonColors(containerColor=led, contentColor=Color.Black), modifier=Modifier.fillMaxWidth().height(52.dp)) { Text("OPEN MY DASHBOARD", fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, letterSpacing=1.sp) }
+            Spacer(Modifier.height(20.dp)); Button(onClick={onFinish(name, goal.toInt(), theme, appearance)}, colors=ButtonDefaults.buttonColors(containerColor=led.copy(alpha=1f), contentColor=buttonText), modifier=Modifier.fillMaxWidth().height(52.dp).shadow(8.dp, RoundedCornerShape(26.dp))) { Text("OPEN MY DASHBOARD", fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, letterSpacing=1.sp) }
         }
-        Text("You can revisit this introduction from Tune → Help.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=9.sp, textAlign=TextAlign.Center, modifier=Modifier.padding(top=18.dp))
+        Spacer(Modifier.height(6.dp))
     }
 }
 
 @Composable private fun Header(state: AppState, dark: Boolean, led: Color, sensorMode: String) {
-    Row(Modifier.fillMaxWidth().padding(start=22.dp, end=22.dp, top=11.dp, bottom=8.dp), verticalAlignment=Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start=22.dp, end=22.dp, top=7.dp, bottom=8.dp), verticalAlignment=Alignment.CenterVertically) {
         FootprintMark(led, Modifier.size(34.dp))
         Spacer(Modifier.width(11.dp))
         Column(Modifier.weight(1f)) {
@@ -223,7 +224,7 @@ private fun MetabasisApp() {
 @Composable private fun BaseScreen(state: AppState, led: Color, dark: Boolean, ensureCounter: ()->Unit, denied: Boolean) {
     Column(Modifier.fillMaxSize().padding(horizontal=18.dp), horizontalAlignment=Alignment.CenterHorizontally) {
         Row(Modifier.fillMaxWidth().padding(top=4.dp), horizontalArrangement=Arrangement.spacedBy(12.dp), verticalAlignment=Alignment.CenterVertically) {
-            Column(Modifier.width(118.dp), horizontalAlignment=Alignment.CenterHorizontally) {
+            Column(Modifier.width(118.dp).padding(top=12.dp), horizontalAlignment=Alignment.CenterHorizontally) {
                 Box(Modifier.size(116.dp).shadow(12.dp, CircleShape).background(glass, CircleShape), contentAlignment=Alignment.Center) {
                     Column(horizontalAlignment=Alignment.CenterHorizontally) {
                         Text("TODAY", fontFamily=SpaceGrotesk, color=muted, fontSize=9.sp, letterSpacing=2.sp)
@@ -296,14 +297,20 @@ private fun MetabasisApp() {
         Text("CALENDAR + HEATMAP · tap a day for its result", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=11.sp, modifier=Modifier.padding(top=4.dp,bottom=14.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween) { listOf("M","T","W","T","F","S","S").forEach { Text(it, color=muted, fontSize=9.sp, modifier=Modifier.width(35.dp), textAlign=TextAlign.Center) } }
         Spacer(Modifier.height(8.dp))
-        val days=(83 downTo 0).map { LocalDate.now().minusDays(it.toLong()).toString() }
-        LazyVerticalGrid(columns=GridCells.Fixed(7), modifier=Modifier.fillMaxWidth().height(265.dp), userScrollEnabled=false, horizontalArrangement=Arrangement.spacedBy(7.dp), verticalArrangement=Arrangement.spacedBy(7.dp)) {
-            items(days) { day ->
-                val steps=state.history[day] ?: 0
-                val ratio=(steps.toFloat()/state.goalSteps).coerceIn(0f,1f)
-                Box(Modifier.aspectRatio(1f).background(if(steps==0) glass else led.copy(alpha=.22f+ratio*.78f), RoundedCornerShape(5.dp)).clickable { selected=day; showDetail=true }, contentAlignment=Alignment.Center) {
-                    Text(day.substring(8, 10), color=if(steps == 0) muted else if (ratio > .55f) Color.Black.copy(alpha=.72f) else milk, fontFamily=Inter, fontSize=8.sp)
-                    if(day==selected) Canvas(Modifier.fillMaxSize()) { drawRoundRect(Color.White.copy(alpha=.8f), style=Stroke(1.2.dp.toPx()), cornerRadius=androidx.compose.ui.geometry.CornerRadius(5.dp.toPx())) }
+        val month = YearMonth.now()
+        Text("${month.month.name} ${month.year}", color=if(dark) milk else titanium, fontFamily=SpaceGrotesk, fontWeight=FontWeight.Bold, fontSize=13.sp, letterSpacing=1.2.sp, modifier=Modifier.padding(bottom=9.dp))
+        val firstOffset = month.atDay(1).dayOfWeek.value % 7
+        val calendarDays: List<Int?> = List(firstOffset) { null } + (1..month.lengthOfMonth()).map { it }
+        LazyVerticalGrid(columns=GridCells.Fixed(7), modifier=Modifier.fillMaxWidth().height(305.dp), userScrollEnabled=false, horizontalArrangement=Arrangement.spacedBy(6.dp), verticalArrangement=Arrangement.spacedBy(6.dp)) {
+            items(calendarDays) { dayNumber ->
+                if (dayNumber == null) Spacer(Modifier.aspectRatio(1f)) else {
+                    val day = month.atDay(dayNumber).toString()
+                    val steps = state.history[day] ?: if (day == state.today) state.todaySteps else 0
+                    val ratio = (steps.toFloat() / state.goalSteps).coerceIn(0f, 1f)
+                    Box(Modifier.aspectRatio(1f).background(if(steps==0) glass else led.copy(alpha=.18f+ratio*.82f), RoundedCornerShape(7.dp)).clickable { selected=day; showDetail=true }, contentAlignment=Alignment.Center) {
+                        Text("$dayNumber", color=if(steps == 0) (if(dark) muted else Color(0xFF62666C)) else if (ratio > .55f) Color.Black.copy(alpha=.72f) else milk, fontFamily=Inter, fontSize=9.sp)
+                        if(day==selected) Canvas(Modifier.fillMaxSize()) { drawRoundRect(if(dark) Color.White.copy(alpha=.9f) else titanium.copy(alpha=.8f), style=Stroke(1.4.dp.toPx()), cornerRadius=androidx.compose.ui.geometry.CornerRadius(7.dp.toPx())) }
+                    }
                 }
             }
         }
@@ -386,7 +393,7 @@ private fun MetabasisApp() {
 
 @Composable private fun FloatingNavigation(selected:Int,led:Color,dark:Boolean,onSelect:(Int)->Unit) {
     val labels=listOf("BASE","TRACES","TUNE")
-    Row(Modifier.fillMaxWidth().padding(start=14.dp,end=14.dp,bottom=12.dp,top=8.dp).height(68.dp).shadow(16.dp,RoundedCornerShape(32.dp)).background(Color(0xEF202124),RoundedCornerShape(32.dp)).padding(horizontal=8.dp,vertical=7.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.SpaceBetween) {
+    Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(start=14.dp,end=14.dp,bottom=6.dp,top=6.dp).height(64.dp).shadow(16.dp,RoundedCornerShape(32.dp)).background(Color(0xEF202124),RoundedCornerShape(32.dp)).padding(horizontal=8.dp,vertical=7.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.SpaceBetween) {
         labels.forEachIndexed { index,label ->
             val active=index==selected
             val width by animateDpAsState(if(active) 128.dp else 54.dp, spring(dampingRatio=.76f,stiffness=420f), label="nav-$label")
