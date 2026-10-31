@@ -118,7 +118,7 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun notification(text: String): Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-        .setSmallIcon(android.R.drawable.ic_menu_compass)
+        .setSmallIcon(R.drawable.ic_footsteps_foreground)
         .setContentTitle("Metabasis is counting")
         .setContentText(text)
         .setOngoing(true)

@@ -268,7 +268,7 @@ private fun MetabasisApp() {
             Column(Modifier.fillMaxWidth().background(Color(0x14000000), RoundedCornerShape(14.dp)).padding(horizontal=14.dp, vertical=10.dp)) {
                 Text("LIVE LOG", color=led, fontFamily=SpaceGrotesk, fontSize=9.sp, letterSpacing=1.4.sp)
                 if (state.liveLogs.isEmpty()) Text("No new step events yet.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=10.sp, modifier=Modifier.padding(top=6.dp))
-                else state.liveLogs.asReversed().take(4).forEach { entry -> Text(entry, color=if(dark) milk else titanium, fontFamily=Inter, fontSize=10.sp, modifier=Modifier.padding(top=5.dp)) }
+                else state.liveLogs.indices.reversed().filter { index -> state.liveLogTimes.getOrNull(index)?.let { System.currentTimeMillis() - it <= 45 * 60 * 1000L } == true }.take(4).forEach { index -> Text(state.liveLogs[index], color=if(dark) milk else titanium, fontFamily=Inter, fontSize=10.sp, modifier=Modifier.padding(top=5.dp)) }
             }
         }
         Spacer(Modifier.height(12.dp))

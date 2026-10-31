@@ -35,6 +35,7 @@ internal data class AppState(
     val lastEvolutionFrom: String = "",
     val lastEvolutionTo: String = "",
     val liveLogs: List<String> = emptyList(),
+    val liveLogTimes: List<Long> = emptyList(),
     val showLiveLogs: Boolean = true
 ) {
     val stageCost: Int get() = (goalSteps / 5).coerceAtLeast(1)
@@ -96,7 +97,7 @@ internal object StepLedger {
         val earned = fullSteps / 1000
         val updatedHistory = base.history.toMutableMap().apply { put(date, (get(date) ?: 0) + delta) }
         val stamp = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
-        var next = base.copy(todaySteps = base.todaySteps + delta, stepRemainder = fullSteps % 1000, fragments = base.fragments + earned, history = updatedHistory, liveLogs = (base.liveLogs + "$stamp · $delta steps").takeLast(5))
+        var next = base.copy(todaySteps = base.todaySteps + delta, stepRemainder = fullSteps % 1000, fragments = base.fragments + earned, history = updatedHistory, liveLogs = (base.liveLogs + "$stamp · $delta steps").takeLast(5), liveLogTimes = (base.liveLogTimes + System.currentTimeMillis()).takeLast(5))
         next = evolveIfReady(next)
         prefs.edit().putLong(KEY_LIFETIME, prefs.getLong(KEY_LIFETIME, 0L) + delta).apply()
         save(context, next)
@@ -164,10 +165,11 @@ internal object StepLedger {
         put("progress", JSONObject().put("current_cycle", state.cycle).put("current_pass", state.pass).put("current_stage_index", state.stageIndex).put("current_fragments", state.fragments).put("step_remainder", state.stepRemainder).put("last_completion_date", state.lastCompletionDate).put("last_recorded_steps_today", state.todaySteps).put("last_recorded_steps_date", state.today))
         put("history", JSONArray().also { a -> state.history.forEach { (date, steps) -> a.put(JSONObject().put("date", date).put("steps", steps)) } })
         put("evolutions", JSONArray().also { a -> state.evolutions.forEach { e -> a.put(JSONObject().put("date", e.date).put("from", e.from).put("to", e.to).put("cycle", e.cycle).put("pass", e.pass).put("spent", e.spent)) } })
-        put("sensor_mode", state.sensorMode).put("last_evolution_at", state.lastEvolutionAt).put("last_evolution_from", state.lastEvolutionFrom).put("last_evolution_to", state.lastEvolutionTo).put("live_logs", JSONArray(state.liveLogs)).put("show_live_logs", state.showLiveLogs)
+        put("sensor_mode", state.sensorMode).put("last_evolution_at", state.lastEvolutionAt).put("last_evolution_from", state.lastEvolutionFrom).put("last_evolution_to", state.lastEvolutionTo).put("live_logs", JSONArray(state.liveLogs)).put("live_log_times", JSONArray(state.liveLogTimes)).put("show_live_logs", state.showLiveLogs)
     }.toString()
 
-    private fun decode(json: String?): AppState? = try {
+    private fun decode(json: String?): AppState? {
+        return try {
         if (json.isNullOrBlank()) return null
         val root = JSONObject(json); val config = root.getJSONObject("user_config"); val progress = root.getJSONObject("progress")
         val history = mutableMapOf<String, Int>(); val rows = root.optJSONArray("history") ?: JSONArray()
@@ -175,6 +177,7 @@ internal object StepLedger {
         val events = mutableListOf<Evolution>(); val eventRows = root.optJSONArray("evolutions") ?: JSONArray()
         for (i in 0 until eventRows.length()) { val e = eventRows.getJSONObject(i); events += Evolution(e.optString("date"), e.optString("from"), e.optString("to"), e.optInt("cycle", 1), e.optString("pass", "forward"), e.optInt("spent")) }
         val logs = mutableListOf<String>(); val logRows = root.optJSONArray("live_logs") ?: JSONArray(); for (i in 0 until logRows.length()) logs += logRows.optString(i)
-        AppState(config.optInt("goal_steps", 5000).coerceIn(2500, 15000), config.optString("theme_id", "amber"), config.optString("appearance", "system"), config.optString("user_name", ""), config.optBoolean("intro_seen", false), config.optBoolean("theme_locked", false), progress.optInt("current_cycle", 1).coerceAtLeast(1), if (progress.optString("current_pass") == "reverse") "reverse" else "forward", progress.optInt("current_stage_index").coerceIn(0, 4), progress.optInt("current_fragments").coerceAtLeast(0), progress.optInt("step_remainder", 0).coerceIn(0, 999), progress.optString("last_completion_date", LocalDate.now().toString()), progress.optString("last_recorded_steps_date", LocalDate.now().toString()), progress.optInt("last_recorded_steps_today").coerceAtLeast(0), history, events, root.optString("sensor_mode", "Starting motion sensor…"), root.optLong("last_evolution_at"), root.optString("last_evolution_from"), root.optString("last_evolution_to"), logs.takeLast(5), root.optBoolean("show_live_logs", true))
+        val logTimes = mutableListOf<Long>(); val timeRows = root.optJSONArray("live_log_times") ?: JSONArray(); for (i in 0 until timeRows.length()) logTimes += timeRows.optLong(i)
+        AppState(config.optInt("goal_steps", 5000).coerceIn(2500, 15000), config.optString("theme_id", "amber"), config.optString("appearance", "system"), config.optString("user_name", ""), config.optBoolean("intro_seen", false), config.optBoolean("theme_locked", false), progress.optInt("current_cycle", 1).coerceAtLeast(1), if (progress.optString("current_pass") == "reverse") "reverse" else "forward", progress.optInt("current_stage_index").coerceIn(0, 4), progress.optInt("current_fragments").coerceAtLeast(0), progress.optInt("step_remainder", 0).coerceIn(0, 999), progress.optString("last_completion_date", LocalDate.now().toString()), progress.optString("last_recorded_steps_date", LocalDate.now().toString()), progress.optInt("last_recorded_steps_today").coerceAtLeast(0), history, events, root.optString("sensor_mode", "Starting motion sensor…"), root.optLong("last_evolution_at"), root.optString("last_evolution_from"), root.optString("last_evolution_to"), logs.takeLast(5), logTimes.takeLast(5), root.optBoolean("show_live_logs", true))
     } catch (_: Exception) { null }
 }
