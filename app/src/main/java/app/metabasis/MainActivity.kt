@@ -164,7 +164,7 @@ class MainActivity : ComponentActivity() {
                 Text("STAGE FRAGMENTS", color = secondary, fontFamily = SpaceGrotesk, fontSize = 7.sp, letterSpacing = 1.2.sp, modifier = Modifier.padding(top = 5.dp))
             }
             Box(Modifier.weight(1f).aspectRatio(1f).shadow(18.dp, CircleShape).background(Glass, CircleShape).border(1.dp, led.copy(alpha = .30f), CircleShape), contentAlignment = Alignment.Center) {
-                MetricDial("CYCLE ${state.cycle}", "${(state.progress * 100).toInt()}%", "${stageName(state.stage)} · ${state.pass.uppercase()}", led, Modifier.fillMaxSize().padding(4.dp), state.progress, true)
+                ModuleCircle("CYCLE ${state.cycle}", "${(state.progress * 100).toInt()}%", "${stageName(state.stage)} · ${state.pass.uppercase()}", led, Modifier.fillMaxSize().padding(4.dp), true, state.progress)
             }
         }
         Spacer(Modifier.height(10.dp))
