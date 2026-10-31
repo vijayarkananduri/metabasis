@@ -370,6 +370,8 @@ private fun MetabasisApp() {
         Spacer(Modifier.height(16.dp)); SectionLabel("STEP ENGINE", dark)
         Text(sensorMode, color=led, fontFamily=SpaceGrotesk, fontSize=11.sp, modifier=Modifier.padding(top=8.dp))
         Text("Local counting stays on this device. The dashboard only shows the step history you choose to keep.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=10.sp, lineHeight=15.sp, modifier=Modifier.padding(top=5.dp,bottom=20.dp))
+        SectionLabel("HELP · ALIVE UI", dark)
+        Text("Metabasis adapts its dashboard to your rhythm: a calm, changing interface rather than a rigid control panel. Your chosen theme stays yours, and after the first stage passes it becomes part of your journey.", color=if(dark) muted else Color.DarkGray, fontFamily=Inter, fontSize=10.sp, lineHeight=15.sp, modifier=Modifier.padding(top=7.dp,bottom=20.dp))
         pendingGoal?.let { target -> AlertDialog(onDismissRequest={pendingGoal=null}, title={Text("Change your stage pace?")}, text={Text("The stage cost updates to ${target/5} fragments. Your current fragments stay in place.")}, confirmButton={TextButton(onClick={onGoal(target);pendingGoal=null}) {Text("Apply")}}, dismissButton={TextButton(onClick={pendingGoal=null}) {Text("Cancel")}}) }
     }
 }
