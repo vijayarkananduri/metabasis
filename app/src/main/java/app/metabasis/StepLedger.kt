@@ -179,5 +179,6 @@ internal object StepLedger {
         val logs = mutableListOf<String>(); val logRows = root.optJSONArray("live_logs") ?: JSONArray(); for (i in 0 until logRows.length()) logs += logRows.optString(i)
         val logTimes = mutableListOf<Long>(); val timeRows = root.optJSONArray("live_log_times") ?: JSONArray(); for (i in 0 until timeRows.length()) logTimes += timeRows.optLong(i)
         AppState(config.optInt("goal_steps", 5000).coerceIn(2500, 15000), config.optString("theme_id", "amber"), config.optString("appearance", "system"), config.optString("user_name", ""), config.optBoolean("intro_seen", false), config.optBoolean("theme_locked", false), progress.optInt("current_cycle", 1).coerceAtLeast(1), if (progress.optString("current_pass") == "reverse") "reverse" else "forward", progress.optInt("current_stage_index").coerceIn(0, 4), progress.optInt("current_fragments").coerceAtLeast(0), progress.optInt("step_remainder", 0).coerceIn(0, 999), progress.optString("last_completion_date", LocalDate.now().toString()), progress.optString("last_recorded_steps_date", LocalDate.now().toString()), progress.optInt("last_recorded_steps_today").coerceAtLeast(0), history, events, root.optString("sensor_mode", "Starting motion sensor…"), root.optLong("last_evolution_at"), root.optString("last_evolution_from"), root.optString("last_evolution_to"), logs.takeLast(5), logTimes.takeLast(5), root.optBoolean("show_live_logs", true))
-    } catch (_: Exception) { null }
+        } catch (_: Exception) { null }
+    }
 }
