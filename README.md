@@ -1,35 +1,115 @@
+<div align="center">
+<img src="assets/metabasis_logo.png" alt="Metabasis logo" width="180" />
+
 # Metabasis
 
-Metabasis is an offline-first Android pedometer styled as a compact, tactile hardware dashboard. The v1 instrument uses a rectangular machined chassis, black-glass modules, a central `mb` monogram and five separated LED strips. The supplied amber footprint artwork is used consistently as the app, launcher, widget, and web-preview logo; LED themes affect the instrument accents without tinting the logo.
+### A step instrument that changes as you move.
 
-The repository root also contains the static marketing page (`index.html`), detailed user guide (`metabasis-guide.html`), update page (`metabasis-updates.html`) and shared Alive UI-inspired stylesheet.
+A private, offline-first Android step instrument. Your steps become fragments, fragments move through stages, and the dashboard evolves without an account or a noisy feed.
 
-## Step counting (no account or health-data connection)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Platform: Android](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)](https://github.com/vijayarkananduri/metabasis/releases)
+[![Offline First](https://img.shields.io/badge/Offline--First-Yes-5b6f52)](#quiet-by-design)
+[![Internet Permission](https://img.shields.io/badge/Internet%20Permission-None-critical)](#quiet-by-design)
+[![Open Source](https://img.shields.io/badge/Open%20Source-Yes-ff69b4)](https://github.com/vijayarkananduri/metabasis)
 
-Metabasis reads the phone's own Android sensors directly; it does **not** require Health Connect, Google Fit, a paired device, a login or an internet connection. The app prefers Android `TYPE_STEP_COUNTER` (hardware cumulative counter), then tries `TYPE_STEP_DETECTOR`, then a clearly marked approximate accelerometer fallback if needed. A foreground service keeps the sensor listener registered while the app is not open; a boot/package-update receiver attempts to resume it after restart when Android allows it. All recorded totals and settings stay in app-private local storage.
+[**Get the APK**](https://github.com/vijayarkananduri/metabasis/releases) · [**Read the guide**](https://vijayarkananduri.github.io/metabasis/metabasis-guide.html) · [**Website**](https://vijayarkananduri.github.io/metabasis/)
+</div>
 
-On Android 10 and newer, grant **Physical activity** when prompted. That is Android's runtime permission for step sensors; it is not a connection to another app. Android 13 and newer may also ask to show the ongoing counter notification. Metabasis uses the first hardware-counter reading on first setup as a baseline, then records subsequent changes. This avoids incorrectly counting earlier steps accumulated since boot as today's steps. Therefore, new installations start counting from the first sensor baseline; they cannot reconstruct steps from before activation without an external historical provider.
+---
 
-Device sensor behavior varies. The hardware counter is preferred but firmware can produce false or missed detections; no open-source project reviewed publishes a defensible universal accuracy percentage. The accelerometer fallback is less reliable and is explicitly labelled approximate. A persistent counter notification indicates that local tracking is active. Force-stopping the app, denied permissions, a missing sensor, or aggressive manufacturer battery controls can interrupt background collection; the service attempts restart where platform rules permit.
+## Why Metabasis?
 
-## App features
+Most step counters turn movement into a number, a streak, or another feed to maintain. Metabasis treats it as a quiet visual journey instead: count locally, keep the record, and let the instrument change gradually as you move.
 
-- **Base:** hardware-inspired step circle, 24-dot stage progress ring, cycle/pass display, fragment meter, live sensor state and a two-calendar-day minimum between evolutions.
-- **Traces:** 12-week daily step heatmap with selected-day detail and evolution entries.
-- **Tune:** five LED palettes, system/light/dark chassis, goal adjustment with a confirmation, and PRD-schema JSON import/export through Android's file picker.
-- One fragment per 100 newly recorded steps; each stage costs 250 fragments, a medium journey of roughly five 5,000-step goal-days. The ledger retains the remainder and date history locally.
-- No accounts, analytics, Health Connect dependency, `INTERNET` permission or advertising SDK.
+No account. No ads. No Health Connect dependency. No internet permission.
 
-## Build and install
+## See it
 
-Open this repository in Android Studio (JDK 17; Android SDK 35), then run the `app` configuration on Android 8.0+ (API 26). With Android command-line tools and Gradle 8.10.2 installed, build locally with `gradle assembleDebug`. The APK is `app/build/outputs/apk/debug/app-debug.apk`.
+<div align="center">
 
-Every push to `main`, pull request, or manual run executes **Android debug APK** in GitHub Actions. Download the `metabasis-debug-apk` artifact from the workflow run. Pushing a `v*` tag also attaches the debug APK to the GitHub Release.
+| Base | Traces | Tune |
+|:---:|:---:|:---:|
+| <img src="assets/metabasis-base.jpg" alt="Metabasis Base screen" width="220" /> | <img src="assets/metabasis-traces.jpg" alt="Metabasis Traces screen" width="220" /> | <img src="assets/metabasis-tune.jpg" alt="Metabasis Tune screen" width="220" /> |
 
-The v1 workflow intentionally produces an unsigned debug APK for testing. Use the `metabasis-debug-apk` artifact from the latest Actions run, or open the GitHub Release created from a `v*` tag.
+</div>
 
-## Design notes and open-source review
+## Everything it does
 
-See [`docs/step-counter-design.md`](docs/step-counter-design.md) for a source-cited review of five open-source Android pedometers and why Metabasis favors a registered hardware-counter listener over Health Connect ingestion. Theme files are in `themes/`; contributor guidance is in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+**Base.** See today’s steps, the cycle ring, stage fragments and a live trace of recent minutes.
 
-The PRD also names CMPedometer for iOS. This repository currently builds the Android app; iOS requires an Apple/Xcode build and signing environment and is not produced by the Android workflow. The Android sensor accuracy and background behavior should be validated on real target phones before making product-level accuracy guarantees.
+**Traces.** Browse a calendar of accumulation, not a streak. Select a day for its footprint.
+
+**Tune.** Choose your name, LED theme, app theme, daily goal, feel, guide, releases and local JSON data tools.
+
+**Fragments and stages.** Every 100 new steps earns a fragment. 250 fragments fill a stage, and five stages form a pass.
+
+**Private by design.** Counts and history stay on your device. Export and import your local JSON history whenever you need a backup or restore.
+
+## The instrument in three ideas
+
+| Idea | What it means |
+|---|---|
+| Count locally | Uses the phone’s own motion sensors without an account or Health Connect. |
+| Move through stages | Each 100 new steps earns a fragment; five stages form a pass. |
+| Keep your data | Settings and history remain in app-private storage and can be exported as local JSON. |
+
+## Quiet by design
+
+Metabasis stores settings and history in app-private storage. It does not ask you to create an account, use analytics or ad SDKs, need Health Connect, or request internet permission.
+
+| Promise | What to expect |
+|---|---|
+| **No account** | Open the app and start with your local device. |
+| **No internet permission** | Your step history is not sent to a server by the app. |
+| **No Health Connect dependency** | Metabasis reads the phone’s own motion sensors directly. |
+| **Local backup** | Export and import your history as JSON from Tune. |
+
+## Get Metabasis
+
+Free and open source.
+
+1. Open [**Releases**](https://github.com/vijayarkananduri/metabasis/releases) and download the latest debug APK.
+2. Android may show a warning because debug builds can be unsigned.
+3. Grant **Physical activity** when the app asks, then set your goal and open Base.
+
+The full walkthrough is in the [**Metabasis Guide**](https://vijayarkananduri.github.io/metabasis/metabasis-guide.html).
+
+## Build from source
+
+Open the repository in Android Studio with JDK 17 and Android SDK 35, then run the `app` configuration on Android 8.0+ (API 26).
+
+```bash
+git clone https://github.com/vijayarkananduri/metabasis.git
+cd metabasis
+./gradlew :app:assembleDebug
+```
+
+Every push to `main`, pull request, or manual workflow run builds an Android debug APK in GitHub Actions. A `v*` tag also attaches the debug APK to a GitHub Release.
+
+## Design notes
+
+Metabasis is part of the Alive UI approach: keep structure trustworthy and let light, texture and context change slowly. The [step-counter design review](docs/step-counter-design.md) explains the sensor choices and the trade-offs around background collection.
+
+## Contribute
+
+Issues, ideas and pull requests are welcome.
+
+1. Fork the repo.
+2. Create a branch: `git checkout -b feature/my-idea`.
+3. Make your change and run the relevant checks.
+4. Open a pull request.
+
+## License
+
+[MIT](LICENSE). Use it, change it, share it.
+
+---
+
+<div align="center">
+
+[Website](https://vijayarkananduri.github.io/metabasis/) · [Guide](https://vijayarkananduri.github.io/metabasis/metabasis-guide.html) · [Source](https://github.com/vijayarkananduri/metabasis) · [Releases](https://github.com/vijayarkananduri/metabasis/releases)
+
+© 2026 Vijayarka Nanduri. Released under the MIT license.
+
+</div>
