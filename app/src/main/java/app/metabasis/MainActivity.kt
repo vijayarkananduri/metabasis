@@ -187,8 +187,8 @@ class MainActivity : ComponentActivity() {
     ).value
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 15.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(10.dp))
-        Text(greeting(state.userName), color = ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(10.dp))
+        Text(greeting(state.userName), color = ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.width(104.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(102.dp).shadow(12.dp, CircleShape).background(Glass, CircleShape).border(1.dp, led.copy(alpha = .42f), CircleShape), contentAlignment = Alignment.Center) {

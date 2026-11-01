@@ -4,7 +4,9 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -16,6 +18,7 @@ import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -79,10 +82,15 @@ class StepCounterService : Service(), SensorEventListener {
             Sensor.TYPE_ACCELEROMETER -> detectAccelerometerStep(event)
         }
         val state = StepLedger.load(this)
-        if (state.hapticsEnabled && (state.fragments != before.fragments || state.lastEvolutionAt != before.lastEvolutionAt || state.stage != before.stage || state.pass != before.pass || state.cycle != before.cycle)) {
-            val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
-            if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(VibrationEffect.createOneShot(if (state.lastEvolutionAt != before.lastEvolutionAt) 28L else 10L, if (state.lastEvolutionAt != before.lastEvolutionAt) VibrationEffect.DEFAULT_AMPLITUDE else 35))
-            else @Suppress("DEPRECATION") vibrator.vibrate(if (state.lastEvolutionAt != before.lastEvolutionAt) 28L else 10L)
+        if (state.hapticsEnabled &&
+            (state.fragments != before.fragments || state.lastEvolutionAt != before.lastEvolutionAt || state.stage != before.stage || state.pass != before.pass || state.cycle != before.cycle) &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.VIBRATE) == PackageManager.PERMISSION_GRANTED
+        ) {
+            val vibrator = getSystemService(VIBRATOR_SERVICE) as? Vibrator
+            if (vibrator != null) {
+                if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(VibrationEffect.createOneShot(if (state.lastEvolutionAt != before.lastEvolutionAt) 28L else 10L, if (state.lastEvolutionAt != before.lastEvolutionAt) VibrationEffect.DEFAULT_AMPLITUDE else 35))
+                else @Suppress("DEPRECATION") vibrator.vibrate(if (state.lastEvolutionAt != before.lastEvolutionAt) 28L else 10L)
+            }
         }
         val now = System.currentTimeMillis()
         if (abs(state.todaySteps - lastNotifiedSteps) >= 25 || now - lastNotifiedAt >= 60_000L) {
