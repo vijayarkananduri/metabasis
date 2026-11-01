@@ -7,6 +7,7 @@ plugins {
 android {
     namespace = "app.metabasis"
     compileSdk = 35
+
     defaultConfig {
         applicationId = "app.metabasis"
         minSdk = 26
@@ -14,9 +15,42 @@ android {
         versionCode = 1
         versionName = "1.0.0"
     }
-    buildFeatures { compose = true }
-    compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
-    kotlinOptions { jvmTarget = "17" }
+
+    signingConfigs {
+        create("release") {
+            val keystoreFile = System.getenv("METABASIS_KEYSTORE_FILE")
+
+            if (!keystoreFile.isNullOrBlank()) {
+                storeFile = file(keystoreFile)
+                storePassword =
+                    System.getenv("METABASIS_KEYSTORE_PASSWORD") ?: ""
+                keyAlias =
+                    System.getenv("METABASIS_KEY_ALIAS") ?: "metabasis-upload"
+                keyPassword =
+                    System.getenv("METABASIS_KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 dependencies {
