@@ -28,9 +28,9 @@ No account. No ads. No Health Connect dependency. No internet permission.
 
 <div align="center">
 
-| Base | Traces | Tune |
-|:---:|:---:|:---:|
-| <img src="assets/metabasis-base.jpg" alt="Metabasis Base screen" width="220" /> | <img src="assets/metabasis-traces.jpg" alt="Metabasis Traces screen" width="220" /> | <img src="assets/metabasis-tune.jpg" alt="Metabasis Tune screen" width="220" /> |
+| Base | Traces | Tune | Themes |
+|:---:|:---:|:---:|:---:|
+| <img src="assets/metabasis-base.jpg" alt="Metabasis Base screen" width="180" /> | <img src="assets/metabasis-traces.jpg" alt="Metabasis Traces screen" width="180" /> | <img src="assets/metabasis-tune.jpg" alt="Metabasis Tune screen" width="180" /> | <img src="assets/metabasis-themes.jpg" alt="Metabasis theme picker" width="180" /> |
 
 </div>
 
@@ -40,7 +40,7 @@ No account. No ads. No Health Connect dependency. No internet permission.
 
 **Traces.** Browse a calendar of accumulation, not a streak. Select a day for its footprint.
 
-**Tune.** Choose your name, LED theme, app theme, daily goal, feel, guide, releases and local JSON data tools.
+**Tune.** Choose your name, one of five LED themes (Amber, Lush, Shed, Cherry or Dusk), app theme, daily goal, feel, guide, releases and local JSON data tools.
 
 **Fragments and stages.** Every 100 new steps earns a fragment. 250 fragments fill a stage, and five stages form a pass.
 
