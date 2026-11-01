@@ -123,7 +123,6 @@ class MainActivity : ComponentActivity() {
         Box(Modifier.fillMaxSize().background(if (dark) Titanium else Silver)) {
             if (!state.introSeen) OnboardingScreen(dark, palette, onFinish = { name, goal, theme, appearance -> StepLedger.finishIntro(context, name, goal, theme, appearance); refresh() })
             else Column(Modifier.fillMaxSize().statusBarsPadding()) {
-                if (tab == 0) GreetingHeader(state, dark)
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
                         0 -> BaseScreen(state, animatedAccent, dark, ::ensureCounter, permissionDenied)
@@ -148,7 +147,14 @@ class MainActivity : ComponentActivity() {
     val context = LocalContext.current
     val ink = if (dark) Milk else Titanium
     val secondary = if (dark) Muted else Color(0xFF454C53)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    val setupScroll = rememberScrollState()
+    Column(
+        Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()
+            .then(if (page == 0) Modifier else Modifier.verticalScroll(setupScroll))
+            .padding(horizontal = 24.dp, vertical = 22.dp),
+        verticalArrangement = if (page == 0) Arrangement.Center else Arrangement.Top,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Text(if (page == 0) "WELCOME TO METABASIS" else "MAKE IT YOURS", color = ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 21.sp, letterSpacing = 1.4.sp, textAlign = TextAlign.Center)
         Text(if (page == 0) "A calm dashboard that changes with your rhythm." else "A small setup now. A dashboard that feels like yours after.", color = secondary, fontFamily = Inter, fontSize = 12.sp, lineHeight = 18.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 10.dp))
         if (page == 0) {
@@ -161,7 +167,7 @@ class MainActivity : ComponentActivity() {
             Slider(value = goal, onValueChange = { goal = (it / 500).toInt() * 500f }, valueRange = 2500f..15000f, steps = 24, colors = SliderDefaults.colors(thumbColor = palette[2], activeTrackColor = palette[2]))
             SectionLabel("CHOOSE A COLOR WORLD", dark)
             themeNames.forEachIndexed { index, label -> ChoiceRow(label, theme == themeIds[index], ledThemes[index][2], dark) { theme = themeIds[index]; haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } }
-            Spacer(Modifier.height(16.dp)); SectionLabel("CHASSIS", dark)
+            Spacer(Modifier.height(16.dp)); SectionLabel("APP THEME", dark)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) { listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key, label) -> Surface(onClick = { appearance = key }, color = if (appearance == key) palette[2].copy(alpha = if (dark) .30f else .18f) else if (dark) Glass else Color(0xFFF8F9F7), shape = RoundedCornerShape(18.dp), border = if (appearance == key) androidx.compose.foundation.BorderStroke(1.dp, palette[2]) else null) { Text(label, color = ink, fontFamily = Inter, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) } } }
             Spacer(Modifier.height(20.dp)); PrimaryButton("OPEN MY DASHBOARD", palette[2], haptic) { onFinish(name, goal.toInt(), theme, appearance) }
         }
@@ -182,6 +188,7 @@ class MainActivity : ComponentActivity() {
         label = "home-neon-alpha"
     ).value
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 15.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.width(104.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(102.dp).shadow(12.dp, CircleShape).background(Glass, CircleShape).border(1.dp, led.copy(alpha = .42f), CircleShape), contentAlignment = Alignment.Center) {
@@ -203,11 +210,30 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
+        Text(greeting(state.userName), color = ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("${(state.progress * 100).toInt()}%", color = led, fontFamily = SpaceGrotesk, fontSize = 12.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.width(8.dp)); Text("STAGE INTENSITY", color = secondary, fontFamily = Inter, fontSize = 9.sp, letterSpacing = 1.4.sp); Spacer(Modifier.weight(1f)); Text("1 fragment / 100 steps", color = secondary, fontFamily = Inter, fontSize = 9.sp) }
-        Spacer(Modifier.height(13.dp))
-        InstrumentPanel(dark, Modifier.fillMaxWidth()) { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Column(Modifier.weight(1f)) { Text(if (denied || state.sensorMode.contains("No compatible", true)) "STEP TRACKING NEEDS SETUP" else "STEP TRACKING ACTIVE", color = ink, fontFamily = SpaceGrotesk, fontSize = 9.sp, letterSpacing = .8.sp); Text("Today · ${state.today} · ${state.todaySteps} steps recorded", color = secondary, fontFamily = Inter, fontSize = 9.sp, maxLines = 1) }; if (denied || state.sensorMode.contains("No compatible", true)) Text("SETUP", color = led, fontFamily = SpaceGrotesk, fontSize = 9.sp, modifier = Modifier.clickable(onClick = ensureCounter).padding(8.dp)) } }
-        if (state.showLiveLogs) { Spacer(Modifier.height(8.dp)); InstrumentPanel(dark, Modifier.fillMaxWidth()) { Text("LIVE TRACE", color = led, fontFamily = SpaceGrotesk, fontSize = 9.sp, letterSpacing = 1.4.sp); if (state.liveLogs.isEmpty()) Text("No new step events yet.", color = secondary, fontFamily = Inter, fontSize = 10.sp, modifier = Modifier.padding(top = 6.dp)) else state.liveLogs.asReversed().take(4).forEach { entry -> Text(entry, color = ink, fontFamily = Inter, fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp)) } } }
+        if (denied || state.sensorMode.contains("No compatible", true)) {
+            Spacer(Modifier.height(13.dp))
+            InstrumentPanel(dark, Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("STEP TRACKING NEEDS SETUP", color = ink, fontFamily = SpaceGrotesk, fontSize = 9.sp, letterSpacing = .8.sp)
+                        Text(state.sensorMode, color = secondary, fontFamily = Inter, fontSize = 9.sp)
+                    }
+                    TextButton(onClick = ensureCounter) { Text("SET UP", color = led) }
+                }
+            }
+        }
+        if (state.showLiveLogs) {
+            Spacer(Modifier.height(10.dp))
+            InstrumentPanel(dark, Modifier.fillMaxWidth()) {
+                Text("LIVE TRACE", color = led, fontFamily = SpaceGrotesk, fontSize = 9.sp, letterSpacing = 1.4.sp)
+                if (state.liveLogs.isEmpty()) Text("Updates live as steps are detected.", color = secondary, fontFamily = Inter, fontSize = 10.sp, modifier = Modifier.padding(top = 6.dp))
+                else state.liveLogs.asReversed().take(4).forEach { entry -> Text(entry, color = ink, fontFamily = Inter, fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp)) }
+            }
+        }
         Spacer(Modifier.height(12.dp))
     }
 }
@@ -259,37 +285,28 @@ class MainActivity : ComponentActivity() {
         SectionLabel("YOUR NAME", dark); Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) { if (editingName) { OutlinedTextField(name, { name = it }, singleLine = true, modifier = Modifier.weight(1f)); TextButton(onClick = { onName(name.trim().ifBlank { "Walker" }); editingName = false }) { Text("SAVE", color = led) } } else { Text(name.ifBlank { "Walker" }, color = if (dark) Milk else Titanium, fontFamily = SpaceGrotesk, modifier = Modifier.weight(1f)); TextButton(onClick = { editingName = true }) { Text("EDIT", color = led) } } }
         Spacer(Modifier.height(11.dp))
         Row(Modifier.fillMaxWidth().clickable { themesExpanded = !themesExpanded }.padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { SectionLabel("LED THEMES", dark); Text(selectedThemeName, color = if (dark) Milk else Titanium, fontFamily = Inter, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)) }
-            Text(if (themesExpanded) "−" else "+", color = led, fontSize = 20.sp)
+            Column(Modifier.weight(1f)) { SectionLabel("LED THEME", dark); Text(selectedThemeName, color = if (dark) Milk else Titanium, fontFamily = Inter, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)) }
+            Text(if (themesExpanded) "HIDE  ⌃" else "CHOOSE THEME  ⌄", color = led, fontFamily = SpaceGrotesk, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(led.copy(alpha = if (dark) .16f else .10f), RoundedCornerShape(18.dp)).border(1.dp, led.copy(alpha = .42f), RoundedCornerShape(18.dp)).padding(horizontal = 10.dp, vertical = 8.dp))
         }
         if (themesExpanded) {
             themeNames.forEachIndexed { i, label -> ChoiceRow(label + if (state.themeLocked && state.themeId == themeIds[i]) " · LOCKED" else "", state.themeId == themeIds[i], ledThemes[i][2], dark, enabled = !state.themeLocked) { onTheme(themeIds[i]); themesExpanded = false } }
             Text(if (state.themeLocked) "Your light journey is locked after the first stage pass. The amber footsteps mark stays fixed." else "Choose carefully: this theme locks after your first completed stage.", color = if (dark) Muted else Color.DarkGray, fontFamily = Inter, fontSize = 10.sp, lineHeight = 15.sp, modifier = Modifier.padding(top = 5.dp))
         }
-        Spacer(Modifier.height(7.dp)); SectionLabel("DAILY GOAL · ${goal.toInt()} STEPS", dark); Slider(value = goal, onValueChange = { goal = (it / 500).toInt() * 500f }, onValueChangeFinished = { if (goal.toInt() != state.goalSteps) pendingGoal = goal.toInt() }, valueRange = 2500f..15000f, steps = 24, colors = SliderDefaults.colors(thumbColor = led, activeTrackColor = led)); Text("Stage cost: ${state.stageCost} fragments · medium five-stage pass", color = if (dark) Muted else Color.DarkGray, fontFamily = Inter, fontSize = 10.sp)
-        Spacer(Modifier.height(7.dp))
+        Spacer(Modifier.height(5.dp))
         Row(Modifier.fillMaxWidth().clickable { chassisExpanded = !chassisExpanded }.padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { SectionLabel("CHASSIS", dark); Text(selectedChassisName, color = if (dark) Milk else Titanium, fontFamily = Inter, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)) }
-            Text(if (chassisExpanded) "−" else "+", color = led, fontSize = 20.sp)
+            Column(Modifier.weight(1f)) { SectionLabel("APP THEME", dark); Text(selectedChassisName, color = if (dark) Milk else Titanium, fontFamily = Inter, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)) }
+            Text(if (chassisExpanded) "HIDE  ⌃" else "CHANGE THEME  ⌄", color = led, fontFamily = SpaceGrotesk, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(led.copy(alpha = if (dark) .16f else .10f), RoundedCornerShape(18.dp)).border(1.dp, led.copy(alpha = .42f), RoundedCornerShape(18.dp)).padding(horizontal = 10.dp, vertical = 8.dp))
         }
         if (chassisExpanded) listOf("system" to "System", "light" to "Brushed silver", "dark" to "Titanium black").forEach { (k, v) -> ChoiceRow(v, state.appearance == k, led, dark) { onAppearance(k); chassisExpanded = false } }
-        Spacer(Modifier.height(7.dp)); SectionLabel("FEEL", dark); SettingSwitch("Soft haptic ticks", state.hapticsEnabled, led, dark, onHaptics); SettingSwitch("Show recent step times on Base", state.showLiveLogs, led, dark, onLogs)
-        Spacer(Modifier.height(11.dp)); SectionLabel("GUIDE + UPDATES", dark); Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 5.dp)) { ActionPill("OPEN GUIDE", led, Modifier.weight(1f)) { openUrl(context, "https://vijayarkananduri.github.io/metabasis/metabasis-guide.html") }; ActionPill("CHECK UPDATES", led, Modifier.weight(1f)) { openUrl(context, "https://vijayarkananduri.github.io/metabasis/metabasis-updates.html") } }; Text("Metabasis v1 · Vijayarka Nanduri · Alive UI", color = if (dark) Muted else Color.DarkGray, fontFamily = Inter, fontSize = 9.sp, modifier = Modifier.padding(top = 5.dp))
+        Spacer(Modifier.height(7.dp)); SectionLabel("DAILY GOAL · ${goal.toInt()} STEPS", dark); Slider(value = goal, onValueChange = { goal = (it / 500).toInt() * 500f }, onValueChangeFinished = { if (goal.toInt() != state.goalSteps) pendingGoal = goal.toInt() }, valueRange = 2500f..15000f, steps = 24, colors = SliderDefaults.colors(thumbColor = led, activeTrackColor = led)); Text("Stage cost: ${state.stageCost} fragments · medium five-stage pass", color = if (dark) Muted else Color.DarkGray, fontFamily = Inter, fontSize = 10.sp)
+        Spacer(Modifier.height(7.dp)); SectionLabel("FEEL", dark); SettingSwitch("Soft haptic ticks", state.hapticsEnabled, led, dark, onHaptics); SettingSwitch("Show live step log on Home", state.showLiveLogs, led, dark, onLogs)
+        Spacer(Modifier.height(11.dp)); SectionLabel("GUIDE + UPDATES", dark); Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 5.dp)) { ActionPill("OPEN GUIDE", led, Modifier.weight(1f)) { openUrl(context, "https://vijayarkananduri.github.io/metabasis/metabasis-guide.html") }; ActionPill("CHECK UPDATES", led, Modifier.weight(1f)) { openUrl(context, "https://vijayarkananduri.github.io/metabasis/metabasis-updates.html") } }
         Spacer(Modifier.height(11.dp)); SectionLabel("DATA · JSON", dark); Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 5.dp)) { ActionPill("EXPORT DATA", led, Modifier.weight(1f), onExport); ActionPill("IMPORT DATA", led, Modifier.weight(1f), onImport) }
+        Text("Metabasis v1 · Vijayarka Nanduri · Alive UI", color = if (dark) Muted else Color.DarkGray, fontFamily = Inter, fontSize = 9.sp, modifier = Modifier.padding(top = 9.dp))
         pendingGoal?.let { target -> AlertDialog(onDismissRequest = { pendingGoal = null }, title = { Text("Change your stage pace?") }, text = { Text("The stage uses 250 fragments. Your current fragments stay in place.") }, confirmButton = { TextButton(onClick = { onGoal(target); pendingGoal = null }) { Text("APPLY") } }, dismissButton = { TextButton(onClick = { pendingGoal = null }) { Text("CANCEL") } }) }
     }
 }
 
-@Composable private fun GreetingHeader(state: AppState, dark: Boolean) {
-    Text(
-        greeting(state.userName),
-        color = if (dark) Milk else Titanium,
-        fontFamily = SpaceGrotesk,
-        fontWeight = FontWeight.Bold,
-        fontSize = 20.sp,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
-    )
-}
 private fun greeting(name: String): String { val hour = java.time.LocalTime.now().hour; val prefix = when { hour < 5 -> "Rest well"; hour < 12 -> "Good morning"; hour < 17 -> "Good afternoon"; hour < 22 -> "Good evening"; else -> "Good night" }; return "$prefix, ${name.ifBlank { "Walker" }}" }
 private fun stageName(stage: Int) = listOf("MARIGOLD", "CITRUS", "EMBER", "GARNET", "DUSK").getOrElse(stage) { "DUSK" }
 
@@ -301,6 +318,21 @@ private fun stageName(stage: Int) = listOf("MARIGOLD", "CITRUS", "EMBER", "GARNE
 @Composable private fun ChoicePill(text: String, selected: Boolean, color: Color, onClick: () -> Unit) { Surface(onClick = onClick, color = if (selected) color.copy(alpha = .32f) else Glass, shape = RoundedCornerShape(20.dp)) { Text(text, color = if (selected) Milk else Muted, fontFamily = SpaceGrotesk, fontSize = 9.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) } }
 @Composable private fun SettingSwitch(label: String, checked: Boolean, led: Color, dark: Boolean, onChange: (Boolean) -> Unit) { Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) { Text(label, color = if (dark) Milk else Titanium, fontFamily = Inter, fontSize = 11.sp, modifier = Modifier.weight(1f)); Switch(checked = checked, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedThumbColor = led, checkedTrackColor = led.copy(alpha = .42f))) } }
 @Composable private fun PrimaryButton(label: String, color: Color, haptic: androidx.compose.ui.hapticfeedback.HapticFeedback, modifier: Modifier = Modifier, onClick: () -> Unit) { Button(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onClick() }, modifier = modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = if (android.graphics.Color.luminance(color.toArgb()) > .55f) Color.Black else Color.White), shape = RoundedCornerShape(25.dp)) { Text(label, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, letterSpacing = 1.sp) } }
-@Composable private fun ActionPill(label: String, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) { Surface(onClick = onClick, color = Glass, shape = RoundedCornerShape(23.dp), modifier = modifier.height(44.dp)) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(label, color = color, fontFamily = SpaceGrotesk, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .7.sp) } } }
+@Composable private fun ActionPill(label: String, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(18.dp)
+    Surface(
+        onClick = onClick,
+        color = Color(0xFF17191D),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = .48f)),
+        shape = shape,
+        modifier = modifier.shadow(5.dp, shape).height(48.dp)
+    ) {
+        Row(Modifier.fillMaxSize().padding(horizontal = 10.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Text(label, color = color, fontFamily = SpaceGrotesk, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .7.sp)
+            Spacer(Modifier.width(6.dp))
+            Text("›", color = color.copy(alpha = .9f), fontFamily = SpaceGrotesk, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
 @Composable private fun Navigation(selected: Int, led: Color, onSelect: (Int) -> Unit) { Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp).height(58.dp).background(Color(0xEF202124), RoundedCornerShape(29.dp)).padding(6.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) { listOf("BASE", "TRACES", "TUNE").forEachIndexed { i, label -> Surface(onClick = { onSelect(i) }, color = if (selected == i) led.copy(alpha = .22f) else Color.Transparent, shape = RoundedCornerShape(23.dp), modifier = Modifier.weight(1f).fillMaxHeight()) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(label, color = if (selected == i) Milk else Color(0xFFB8BBC0), fontFamily = SpaceGrotesk, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) } } } } }
 private fun openUrl(context: Context, url: String) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }

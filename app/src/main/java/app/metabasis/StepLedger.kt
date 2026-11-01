@@ -99,11 +99,45 @@ internal object StepLedger {
         val fullSteps = base.stepRemainder + delta
         val earned = fullSteps / 100
         val updatedHistory = base.history.toMutableMap().apply { put(date, (get(date) ?: 0) + delta) }
+        val now = System.currentTimeMillis()
         val stamp = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
-        var next = base.copy(todaySteps = base.todaySteps + delta, stepRemainder = fullSteps % 100, fragments = base.fragments + earned, history = updatedHistory, liveLogs = (base.liveLogs + "$stamp · $delta steps").takeLast(5), liveLogTimes = (base.liveLogTimes + System.currentTimeMillis()).takeLast(5))
+        val (liveLogs, liveLogTimes) = appendLiveMinuteLog(base, delta, now, stamp)
+        var next = base.copy(todaySteps = base.todaySteps + delta, stepRemainder = fullSteps % 100, fragments = base.fragments + earned, history = updatedHistory, liveLogs = liveLogs, liveLogTimes = liveLogTimes)
         next = evolveIfReady(next)
         prefs.edit().putLong(KEY_LIFETIME, prefs.getLong(KEY_LIFETIME, 0L) + delta).apply()
         save(context, next)
+    }
+
+
+    private data class LiveLogRow(val text: String, val timestamp: Long, val count: Int, val isMinuteSummary: Boolean)
+
+    private fun appendLiveMinuteLog(state: AppState, delta: Int, now: Long, stamp: String): Pair<List<String>, List<Long>> {
+        fun countFrom(text: String): Int? = text.substringAfter(" · ", "").trim().removePrefix("+").substringBefore(" ").toIntOrNull()
+
+        val existing = state.liveLogs.zip(state.liveLogTimes).mapNotNull { (text, timestamp) ->
+            val count = countFrom(text) ?: return@mapNotNull null
+            LiveLogRow(text, timestamp, count, text.contains("steps this minute"))
+        }
+        val currentMinute = now / 60_000L
+        val grouped = existing.groupBy { it.timestamp / 60_000L }
+        val currentRows = grouped[currentMinute].orEmpty()
+        val previousSummary = currentRows.lastOrNull { it.isMinuteSummary }
+        val previousCount = if (previousSummary != null) {
+            previousSummary.count + currentRows.filter { !it.isMinuteSummary && it.timestamp > previousSummary.timestamp }.sumOf { it.count }
+        } else currentRows.sumOf { it.count }
+        val currentRow = LiveLogRow("$stamp · +${previousCount + delta} steps this minute", now, previousCount + delta, true)
+
+        val recentMinutes = grouped.filterKeys { it != currentMinute }.map { (_, rows) ->
+            val summary = rows.lastOrNull { it.isMinuteSummary }
+            val count = if (summary != null) {
+                summary.count + rows.filter { !it.isMinuteSummary && it.timestamp > summary.timestamp }.sumOf { it.count }
+            } else rows.sumOf { it.count }
+            val latest = rows.maxByOrNull { it.timestamp }!!
+            val minuteLabel = latest.text.substringBefore(" · ").ifBlank { stamp }
+            LiveLogRow("$minuteLabel · +$count steps this minute", latest.timestamp, count, true)
+        }
+        val retained = (recentMinutes + currentRow).sortedBy { it.timestamp }.takeLast(5)
+        return retained.map { it.text } to retained.map { it.timestamp }
     }
 
     fun checkEvolution(context: Context) {
