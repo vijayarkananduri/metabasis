@@ -7,8 +7,7 @@
     android:padding="14dp"
     android:background="#EF111214">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-        <ImageView android:id="@+id/widget_mark" android:layout_width="30dp" android:layout_height="30dp" android:contentDescription="Metabasis logo" android:scaleType="fitCenter" android:src="@drawable/metabasis_logo" />
-        <TextView android:id="@+id/widget_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:text="Good morning, Walker" android:textColor="#F5F5F2" android:textSize="11sp" android:letterSpacing="0.04" android:fontFamily="sans" />
+        <TextView android:id="@+id/widget_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="0dp" android:text="Good morning, Walker" android:textColor="#F5F5F2" android:textSize="11sp" android:letterSpacing="0.04" android:fontFamily="sans" />
         <View android:id="@+id/widget_status" android:layout_width="7dp" android:layout_height="7dp" android:background="#5FA83D" />
     </LinearLayout>
     <LinearLayout android:id="@+id/widget_led_strip" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="8dp" android:orientation="horizontal" android:weightSum="5">
