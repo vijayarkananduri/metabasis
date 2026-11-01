@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -94,17 +93,16 @@ class MainActivity : ComponentActivity() {
 
 @Composable private fun MetabasisApp() {
     val context = LocalContext.current
-    var state by remember { mutableStateOf(StepLedger.load(context)) }
+    val state by StepLedger.observe(context).collectAsState()
     var tab by remember { mutableIntStateOf(0) }
     var permissionDenied by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    fun refresh() { state = StepLedger.load(context) }
-    fun startCounter() { ContextCompat.startForegroundService(context, Intent(context, StepCounterService::class.java)); refresh() }
+    fun startCounter() { ContextCompat.startForegroundService(context, Intent(context, StepCounterService::class.java)) }
     val notification = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { startCounter() }
     val motion = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         permissionDenied = !granted
         if (granted && Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) notification.launch(Manifest.permission.POST_NOTIFICATIONS)
-        else if (granted) startCounter() else refresh()
+        else if (granted) startCounter()
     }
     fun ensureCounter() {
         if (Build.VERSION.SDK_INT >= 29 && ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) motion.launch(Manifest.permission.ACTIVITY_RECOGNITION)
@@ -112,8 +110,8 @@ class MainActivity : ComponentActivity() {
         else startCounter()
     }
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? -> if (uri != null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(StepLedger.exportJson(context)) } }.onFailure { error = "Could not export data." } }
-    val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? -> if (uri != null) runCatching { val json = context.contentResolver.openInputStream(uri)!!.bufferedReader().use { it.readText() }; StepLedger.replace(context, StepLedger.importJson(json, StepLedger.load(context).sensorMode)); refresh() }.onFailure { error = "That file is not a valid Metabasis export." } }
-    LaunchedEffect(Unit) { if (Build.VERSION.SDK_INT < 29 || ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED) startCounter() else motion.launch(Manifest.permission.ACTIVITY_RECOGNITION); while (true) { delay(900); refresh() } }
+    val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? -> if (uri != null) runCatching { val json = context.contentResolver.openInputStream(uri)!!.bufferedReader().use { it.readText() }; StepLedger.replace(context, StepLedger.importJson(json, StepLedger.load(context).sensorMode)) }.onFailure { error = "That file is not a valid Metabasis export." } }
+    LaunchedEffect(Unit) { if (Build.VERSION.SDK_INT < 29 || ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED) startCounter() else motion.launch(Manifest.permission.ACTIVITY_RECOGNITION) }
     val dark = state.appearance == "dark" || (state.appearance == "system" && (context.resources.configuration.uiMode and 0x30) == 0x20)
     val palette = ledThemes[themeIds.indexOf(state.themeId).coerceAtLeast(0)]
     val accent = palette[state.stage]
@@ -121,13 +119,13 @@ class MainActivity : ComponentActivity() {
     val animatedAccent = if (dark) animatedBaseAccent else accentForLightSurface(animatedBaseAccent)
     MaterialTheme(colorScheme = if (dark) darkColorScheme(background = Titanium, surface = Glass, onSurface = Milk, primary = animatedAccent) else lightColorScheme(background = Silver, surface = Color(0xFFF8F9F7), onSurface = Titanium, primary = animatedAccent)) {
         Box(Modifier.fillMaxSize().background(if (dark) Titanium else Silver)) {
-            if (!state.introSeen) OnboardingScreen(dark, palette, onFinish = { name, goal, theme, appearance -> StepLedger.finishIntro(context, name, goal, theme, appearance); refresh() })
+            if (!state.introSeen) OnboardingScreen(dark, palette, onFinish = { name, goal, theme, appearance -> StepLedger.finishIntro(context, name, goal, theme, appearance) })
             else Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
                         0 -> BaseScreen(state, animatedAccent, dark, ::ensureCounter, permissionDenied)
                         1 -> TracesScreen(state, animatedAccent, dark)
-                        else -> TuneScreen(state, animatedAccent, dark, palette, onTheme = { StepLedger.updateSettings(context, theme = it); refresh() }, onName = { StepLedger.updateSettings(context, userName = it); refresh() }, onGoal = { StepLedger.updateSettings(context, goal = it); refresh() }, onAppearance = { StepLedger.updateSettings(context, appearance = it); refresh() }, onLogs = { StepLedger.updateLiveLogs(context, it); refresh() }, onHaptics = { StepLedger.updateHaptics(context, it); refresh() }, onExport = { export.launch("metabasis-${LocalDate.now()}.json") }, onImport = { import.launch(arrayOf("application/json", "text/json", "*/*")) })
+                        else -> TuneScreen(state, animatedAccent, dark, palette, onTheme = { StepLedger.updateSettings(context, theme = it) }, onName = { StepLedger.updateSettings(context, userName = it) }, onGoal = { StepLedger.updateSettings(context, goal = it) }, onAppearance = { StepLedger.updateSettings(context, appearance = it) }, onLogs = { StepLedger.updateLiveLogs(context, it) }, onHaptics = { StepLedger.updateHaptics(context, it) }, onExport = { export.launch("metabasis-${LocalDate.now()}.json") }, onImport = { import.launch(arrayOf("application/json", "text/json", "*/*")) })
                     }
                 }
                 Navigation(tab, animatedAccent) { tab = it }
@@ -188,7 +186,9 @@ class MainActivity : ComponentActivity() {
         label = "home-neon-alpha"
     ).value
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 15.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
+        Text(greeting(state.userName), color = ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.width(104.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(102.dp).shadow(12.dp, CircleShape).background(Glass, CircleShape).border(1.dp, led.copy(alpha = .42f), CircleShape), contentAlignment = Alignment.Center) {
@@ -210,8 +210,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        Spacer(Modifier.height(12.dp))
-        Text(greeting(state.userName), color = ink, fontFamily = SpaceGrotesk, fontWeight = FontWeight.Bold, fontSize = 17.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("${(state.progress * 100).toInt()}%", color = led, fontFamily = SpaceGrotesk, fontSize = 12.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.width(8.dp)); Text("STAGE INTENSITY", color = secondary, fontFamily = Inter, fontSize = 9.sp, letterSpacing = 1.4.sp); Spacer(Modifier.weight(1f)); Text("1 fragment / 100 steps", color = secondary, fontFamily = Inter, fontSize = 9.sp) }
         if (denied || state.sensorMode.contains("No compatible", true)) {
@@ -295,7 +293,7 @@ class MainActivity : ComponentActivity() {
         Spacer(Modifier.height(5.dp))
         Row(Modifier.fillMaxWidth().clickable { chassisExpanded = !chassisExpanded }.padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) { SectionLabel("APP THEME", dark); Text(selectedChassisName, color = if (dark) Milk else Titanium, fontFamily = Inter, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)) }
-            Text(if (chassisExpanded) "HIDE  ⌃" else "CHANGE THEME  ⌄", color = led, fontFamily = SpaceGrotesk, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(led.copy(alpha = if (dark) .16f else .10f), RoundedCornerShape(18.dp)).border(1.dp, led.copy(alpha = .42f), RoundedCornerShape(18.dp)).padding(horizontal = 10.dp, vertical = 8.dp))
+            Text(if (chassisExpanded) "HIDE  ⌃" else "CHOOSE THEME  ⌄", color = led, fontFamily = SpaceGrotesk, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(led.copy(alpha = if (dark) .16f else .10f), RoundedCornerShape(18.dp)).border(1.dp, led.copy(alpha = .42f), RoundedCornerShape(18.dp)).padding(horizontal = 10.dp, vertical = 8.dp))
         }
         if (chassisExpanded) listOf("system" to "System", "light" to "Brushed silver", "dark" to "Titanium black").forEach { (k, v) -> ChoiceRow(v, state.appearance == k, led, dark) { onAppearance(k); chassisExpanded = false } }
         Spacer(Modifier.height(7.dp)); SectionLabel("DAILY GOAL · ${goal.toInt()} STEPS", dark); Slider(value = goal, onValueChange = { goal = (it / 500).toInt() * 500f }, onValueChangeFinished = { if (goal.toInt() != state.goalSteps) pendingGoal = goal.toInt() }, valueRange = 2500f..15000f, steps = 24, colors = SliderDefaults.colors(thumbColor = led, activeTrackColor = led)); Text("Stage cost: ${state.stageCost} fragments · medium five-stage pass", color = if (dark) Muted else Color.DarkGray, fontFamily = Inter, fontSize = 10.sp)

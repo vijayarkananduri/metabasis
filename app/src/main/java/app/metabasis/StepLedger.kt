@@ -11,6 +11,8 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 internal data class Evolution(val date: String, val from: String, val to: String, val cycle: Int, val pass: String, val spent: Int)
 
@@ -58,12 +60,21 @@ internal object StepLedger {
     private const val KEY_SENSOR = "last_sensor_value"
     private const val KEY_SENSOR_INITIALIZED = "sensor_initialized"
     private const val KEY_LIFETIME = "lifetime_steps"
+    private var observableState: MutableStateFlow<AppState>? = null
 
     fun preferences(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     fun load(context: Context): AppState = decode(preferences(context).getString(KEY_STATE, null)) ?: AppState()
 
+    fun observe(context: Context): StateFlow<AppState> = synchronized(this) {
+        observableState ?: MutableStateFlow(load(context)).also { observableState = it }
+    }
+
     fun save(context: Context, state: AppState) {
         preferences(context).edit().putString(KEY_STATE, encode(state)).apply()
+        synchronized(this) {
+            val stream = observableState ?: MutableStateFlow(state).also { observableState = it }
+            stream.value = state
+        }
         runCatching {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, DashboardWidget::class.java))
